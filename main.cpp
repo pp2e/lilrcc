@@ -77,14 +77,6 @@ int runRcc(int argc, char *argv[])
     QCommandLineOption binaryOption(QStringLiteral("binary"), QStringLiteral("Output a binary file for use as a dynamic resource."));
     parser.addOption(binaryOption);
 
-    QCommandLineOption generatorOption(QStringList{QStringLiteral("g"), QStringLiteral("generator")});
-    generatorOption.setDescription(QStringLiteral("Select generator."));
-    generatorOption.setValueName(QStringLiteral("cpp|python|python2"));
-    parser.addOption(generatorOption);
-
-    QCommandLineOption passOption(QStringLiteral("pass"), QStringLiteral("Pass number for big resources"), QStringLiteral("number"));
-    parser.addOption(passOption);
-
     QCommandLineOption namespaceOption(QStringLiteral("namespace"), QStringLiteral("Turn off namespace macros."));
     parser.addOption(namespaceOption);
 
@@ -142,28 +134,7 @@ int runRcc(int argc, char *argv[])
         library.setCompressThreshold(parser.value(thresholdOption).toInt());
     if (parser.isSet(binaryOption))
         library.setFormat(RCCResourceLibrary::Binary);
-    if (parser.isSet(generatorOption)) {
-        auto value = parser.value(generatorOption);
-        if (value == "cpp"_L1) {
-            library.setFormat(RCCResourceLibrary::C_Code);
-        } else if (value == "python"_L1) {
-            library.setFormat(RCCResourceLibrary::Python_Code);
-        } else if (value == "python2"_L1) { // ### fixme Qt 7: remove
-            qWarning("Format python2 is no longer supported, defaulting to python.");
-            library.setFormat(RCCResourceLibrary::Python_Code);
-        } else {
-            errorMsg = "Invalid generator: "_L1 + value;
-        }
-    }
 
-    if (parser.isSet(passOption)) {
-        if (parser.value(passOption) == "1"_L1)
-            library.setFormat(RCCResourceLibrary::Pass1);
-        else if (parser.value(passOption) == "2"_L1)
-            library.setFormat(RCCResourceLibrary::Pass2);
-        else
-            errorMsg = "Pass number must be 1 or 2"_L1;
-    }
     if (parser.isSet(namespaceOption))
         library.setUseNameSpace(!library.useNameSpace());
     if (parser.isSet(verboseOption))
@@ -199,7 +170,7 @@ int runRcc(int argc, char *argv[])
 
     library.setInputFiles(filenamesIn);
 
-    if (!library.readFiles(false, errorDevice))
+    if (!library.readFiles(errorDevice))
         return 1;
 
     QFile out;
@@ -207,12 +178,6 @@ int runRcc(int argc, char *argv[])
     // open output
     QIODevice::OpenMode mode = QIODevice::NotOpen;
     switch (library.format()) {
-        case RCCResourceLibrary::C_Code:
-        case RCCResourceLibrary::Pass1:
-        case RCCResourceLibrary::Python_Code:
-            mode = QIODevice::WriteOnly | QIODevice::Text;
-            break;
-        case RCCResourceLibrary::Pass2:
         case RCCResourceLibrary::Binary:
             mode = QIODevice::WriteOnly;
             break;

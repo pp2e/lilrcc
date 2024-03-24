@@ -7,13 +7,11 @@
 #ifndef RCC_H
 #define RCC_H
 
-#include <qstringlist.h>
-#include <qhash.h>
-#include <qstring.h>
+#include <QStringList>
+#include <QHash>
+#include <QString>
 
 typedef struct ZSTD_CCtx_s ZSTD_CCtx;
-
-QT_BEGIN_NAMESPACE
 
 class RCCFileInfo;
 class QIODevice;
@@ -31,9 +29,9 @@ public:
 
     bool output(QIODevice &outDevice, QIODevice &tempDevice, QIODevice &errorDevice);
 
-    bool readFiles(bool listMode, QIODevice &errorDevice);
+    bool readFiles(QIODevice &errorDevice);
 
-    enum Format { Binary, C_Code, Pass1, Pass2, Python_Code };
+    enum Format { Binary, /*C_Code, Pass1, Pass2, Python_Code*/ };
     void setFormat(Format f) { m_format = f; }
     Format format() const { return m_format; }
 
@@ -151,7 +149,5 @@ private:
     quint8 m_formatVersion;
     bool m_noZstd;
 };
-
-QT_END_NAMESPACE
 
 #endif // RCC_H
