@@ -31,7 +31,7 @@ public:
 
     bool output(QIODevice &outDevice, QIODevice &tempDevice, QIODevice &errorDevice);
 
-    // bool readFiles(bool listMode, QIODevice &errorDevice);
+    bool readFiles(bool listMode, QIODevice &errorDevice);
 
     enum Format { Binary, C_Code, Pass1, Pass2, Python_Code };
     void setFormat(Format f) { m_format = f; }
@@ -49,8 +49,8 @@ public:
     void setVerbose(bool b) { m_verbose = b; }
     bool verbose() const { return m_verbose; }
 
-    void setInitName(const QString &name) { m_initName = name; }
-    QString initName() const { return m_initName; }
+    // void setInitName(const QString &name) { m_initName = name; }
+    // QString initName() const { return m_initName; }
 
     void setOutputName(const QString &name) { m_outputName = name; }
     QString outputName() const { return m_outputName; }
@@ -132,7 +132,7 @@ private:
     RCCFileInfo *m_root;
     QStringList m_fileNames;
     QString m_resourceRoot;
-    QString m_initName;
+    // QString m_initName;
     QString m_outputName;
     Format m_format;
     bool m_verbose;

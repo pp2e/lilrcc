@@ -776,46 +776,46 @@ void RCCResourceLibrary::reset()
 }
 
 
-// bool RCCResourceLibrary::readFiles(bool listMode, QIODevice &errorDevice)
-// {
-//     reset();
-//     m_errorDevice = &errorDevice;
-//     //read in data
-//     if (m_verbose) {
-//         const QString msg = QString::fromLatin1("Processing %1 files [listMode=%2]\n")
-//             .arg(m_fileNames.size()).arg(static_cast<int>(listMode));
-//         m_errorDevice->write(msg.toUtf8());
-//     }
-//     for (int i = 0; i < m_fileNames.size(); ++i) {
-//         QFile fileIn;
-//         QString fname = m_fileNames.at(i);
-//         QString pwd;
-//         if (fname == "-"_L1) {
-//             fname = "(stdin)"_L1;
-//             pwd = QDir::currentPath();
-//             fileIn.setFileName(fname);
-//             if (!fileIn.open(stdin, QIODevice::ReadOnly)) {
-//                 m_errorDevice->write(msgOpenReadFailed(fname, fileIn.errorString()).toUtf8());
-//                 return false;
-//             }
-//         } else {
-//             pwd = QFileInfo(fname).path();
-//             fileIn.setFileName(fname);
-//             if (!fileIn.open(QIODevice::ReadOnly)) {
-//                 m_errorDevice->write(msgOpenReadFailed(fname, fileIn.errorString()).toUtf8());
-//                 return false;
-//             }
-//         }
-//         if (m_verbose) {
-//             const QString msg = QString::fromLatin1("Interpreting %1\n").arg(fname);
-//             m_errorDevice->write(msg.toUtf8());
-//         }
+bool RCCResourceLibrary::readFiles(bool listMode, QIODevice &errorDevice)
+{
+    reset();
+    m_errorDevice = &errorDevice;
+    //read in data
+    if (m_verbose) {
+        const QString msg = QString::fromLatin1("Processing %1 files [listMode=%2]\n")
+            .arg(m_fileNames.size()).arg(static_cast<int>(listMode));
+        m_errorDevice->write(msg.toUtf8());
+    }
+    for (int i = 0; i < m_fileNames.size(); ++i) {
+        QFile fileIn;
+        QString fname = m_fileNames.at(i);
+        QString pwd;
+        if (fname == "-"_L1) {
+            fname = "(stdin)"_L1;
+            pwd = QDir::currentPath();
+            fileIn.setFileName(fname);
+            if (!fileIn.open(stdin, QIODevice::ReadOnly)) {
+                m_errorDevice->write(msgOpenReadFailed(fname, fileIn.errorString()).toUtf8());
+                return false;
+            }
+        } else {
+            pwd = QFileInfo(fname).path();
+            fileIn.setFileName(fname);
+            if (!fileIn.open(QIODevice::ReadOnly)) {
+                m_errorDevice->write(msgOpenReadFailed(fname, fileIn.errorString()).toUtf8());
+                return false;
+            }
+        }
+        if (m_verbose) {
+            const QString msg = QString::fromLatin1("Interpreting %1\n").arg(fname);
+            m_errorDevice->write(msg.toUtf8());
+        }
 
-//         if (!interpretResourceFile(&fileIn, fname, pwd, listMode))
-//             return false;
-//     }
-//     return true;
-// }
+        if (!interpretResourceFile(&fileIn, fname, pwd, listMode))
+            return false;
+    }
+    return true;
+}
 
 // QStringList RCCResourceLibrary::dataFiles() const
 // {
@@ -1351,22 +1351,22 @@ bool RCCResourceLibrary::writeInitializer()
 {
     if (m_format == C_Code || m_format == Pass1) {
         //write("\nQT_BEGIN_NAMESPACE\n");
-        QString initNameStr = m_initName;
-        if (!initNameStr.isEmpty()) {
-            initNameStr.prepend(u'_');
-            auto isAsciiLetterOrNumber = [] (QChar c) -> bool {
-                ushort ch = c.unicode();
-                return (ch >= '0' && ch <= '9') ||
-                        (ch >= 'A' && ch <= 'Z') ||
-                        (ch >= 'a' && ch <= 'z') ||
-                        ch == '_';
-            };
-            for (QChar &c : initNameStr) {
-                if (!isAsciiLetterOrNumber(c))
-                    c = u'_';
-            }
-        }
-        QByteArray initName = initNameStr.toLatin1();
+        // QString initNameStr = m_initName;
+        // if (!initNameStr.isEmpty()) {
+        //     initNameStr.prepend(u'_');
+        //     auto isAsciiLetterOrNumber = [] (QChar c) -> bool {
+        //         ushort ch = c.unicode();
+        //         return (ch >= '0' && ch <= '9') ||
+        //                 (ch >= 'A' && ch <= 'Z') ||
+        //                 (ch >= 'a' && ch <= 'z') ||
+        //                 ch == '_';
+        //     };
+        //     for (QChar &c : initNameStr) {
+        //         if (!isAsciiLetterOrNumber(c))
+        //             c = u'_';
+        //     }
+        // }
+        // QByteArray initName = initNameStr.toLatin1();
 
         //init
         if (m_useNameSpace) {
@@ -1425,7 +1425,7 @@ bool RCCResourceLibrary::writeInitializer()
             writeString("#ifdef QT_NAMESPACE\n}\n#endif\n\n");
 
         QByteArray initResources = "qInitResources";
-        initResources += initName;
+        // initResources += initName;
 
         // Work around -Wmissing-declarations warnings.
         writeString("int ");
@@ -1449,7 +1449,7 @@ bool RCCResourceLibrary::writeInitializer()
 
         //cleanup
         QByteArray cleanResources = "qCleanupResources";
-        cleanResources += initName;
+        // cleanResources += initName;
 
         // Work around -Wmissing-declarations warnings.
         writeString("int ");

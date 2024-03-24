@@ -21,7 +21,7 @@ using namespace Qt::StringLiterals;
 int runRcc(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion(QStringLiteral(QT_VERSION_STR));
+    // QCoreApplication::setApplicationVersion(QStringLiteral(QT_VERSION_STR));
 
     // Note that rcc isn't translated.
     // If you use this code as an example for a translated app, make sure to translate the strings.
@@ -41,8 +41,8 @@ int runRcc(int argc, char *argv[])
     tempOption.setValueName(QStringLiteral("file"));
     parser.addOption(tempOption);
 
-    QCommandLineOption nameOption(QStringLiteral("name"), QStringLiteral("Create an external initialization function with <name>."), QStringLiteral("name"));
-    parser.addOption(nameOption);
+    // QCommandLineOption nameOption(QStringLiteral("name"), QStringLiteral("Create an external initialization function with <name>."), QStringLiteral("name"));
+    // parser.addOption(nameOption);
 
     QCommandLineOption rootOption(QStringLiteral("root"), QStringLiteral("Prefix resource access path with root path."), QStringLiteral("path"));
     parser.addOption(rootOption);
@@ -114,8 +114,8 @@ int runRcc(int argc, char *argv[])
     }
 
     RCCResourceLibrary library(formatVersion);
-    if (parser.isSet(nameOption))
-        library.setInitName(parser.value(nameOption));
+    // if (parser.isSet(nameOption))
+    //     library.setInitName(parser.value(nameOption));
     if (parser.isSet(rootOption)) {
         library.setResourceRoot(QDir::cleanPath(parser.value(rootOption)));
         if (library.resourceRoot().isEmpty() || library.resourceRoot().at(0) != u'/')
@@ -198,6 +198,9 @@ int runRcc(int argc, char *argv[])
         errorDevice.write("Qt resource compiler\n");
 
     library.setInputFiles(filenamesIn);
+
+    if (!library.readFiles(false, errorDevice))
+        return 1;
 
     QFile out;
 
