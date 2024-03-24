@@ -36,11 +36,6 @@ int runRcc(int argc, char *argv[])
     outputOption.setValueName(QStringLiteral("file"));
     parser.addOption(outputOption);
 
-    QCommandLineOption tempOption(QStringList() << QStringLiteral("t") << QStringLiteral("temp"));
-    tempOption.setDescription(QStringLiteral("Use temporary <file> for big resources."));
-    tempOption.setValueName(QStringLiteral("file"));
-    parser.addOption(tempOption);
-
     // QCommandLineOption nameOption(QStringLiteral("name"), QStringLiteral("Create an external initialization function with <name>."), QStringLiteral("name"));
     // parser.addOption(nameOption);
 
@@ -73,9 +68,6 @@ int runRcc(int argc, char *argv[])
 
     QCommandLineOption thresholdOption(QStringLiteral("threshold"), QStringLiteral("Threshold to consider compressing files."), QStringLiteral("level"));
     parser.addOption(thresholdOption);
-
-    QCommandLineOption binaryOption(QStringLiteral("binary"), QStringLiteral("Output a binary file for use as a dynamic resource."));
-    parser.addOption(binaryOption);
 
     QCommandLineOption namespaceOption(QStringLiteral("namespace"), QStringLiteral("Turn off namespace macros."));
     parser.addOption(namespaceOption);
@@ -132,8 +124,6 @@ int runRcc(int argc, char *argv[])
     }
     if (parser.isSet(thresholdOption))
         library.setCompressThreshold(parser.value(thresholdOption).toInt());
-    if (parser.isSet(binaryOption))
-        library.setFormat(RCCResourceLibrary::Binary);
 
     if (parser.isSet(namespaceOption))
         library.setUseNameSpace(!library.useNameSpace());
@@ -152,7 +142,6 @@ int runRcc(int argc, char *argv[])
     }
 
     QString outFilename = parser.value(outputOption);
-    QString tempFilename = parser.value(tempOption);
 
     if (filenamesIn.isEmpty())
         errorMsg = QStringLiteral("No input files specified.");
@@ -175,21 +164,12 @@ int runRcc(int argc, char *argv[])
 
     QFile out;
 
-    // open output
-    QIODevice::OpenMode mode = QIODevice::NotOpen;
-    switch (library.format()) {
-        case RCCResourceLibrary::Binary:
-            mode = QIODevice::WriteOnly;
-            break;
-    }
-
-
     if (outFilename.isEmpty() || outFilename == "-"_L1) {
         // using this overload close() only flushes.
-        out.open(stdout, mode);
+        out.open(stdout, QIODevice::WriteOnly);
     } else {
         out.setFileName(outFilename);
-        if (!out.open(mode)) {
+        if (!out.open(QIODevice::WriteOnly)) {
             const QString msg = QString::fromLatin1("Unable to open %1 for writing: %2\n")
                                 .arg(outFilename, out.errorString());
             errorDevice.write(msg.toUtf8());
@@ -197,17 +177,7 @@ int runRcc(int argc, char *argv[])
         }
     }
 
-    QFile temp;
-    if (!tempFilename.isEmpty()) {
-        temp.setFileName(tempFilename);
-        if (!temp.open(QIODevice::ReadOnly)) {
-            const QString msg = QString::fromUtf8("Unable to open temporary file %1 for reading: %2\n")
-                    .arg(tempFilename, out.errorString());
-            errorDevice.write(msg.toUtf8());
-            return 1;
-        }
-    }
-    bool success = library.output(out, temp, errorDevice);
+    bool success = library.output(out, errorDevice);
     if (!success) {
         // erase the output file if we failed
         out.remove();

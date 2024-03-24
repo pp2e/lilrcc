@@ -185,8 +185,6 @@ void RCCFileInfo::writeDataInfo(RCCResourceLibrary &lib)
 qint64 RCCFileInfo::writeDataBlob(RCCResourceLibrary &lib, qint64 offset,
     QString *errorMessage)
 {
-    const bool binary = lib.m_format == RCCResourceLibrary::Binary;
-
     //capture the offset
     m_dataOffset = offset;
     QByteArray data;
@@ -280,14 +278,11 @@ qint64 RCCFileInfo::writeDataBlob(RCCResourceLibrary &lib, qint64 offset,
     }
 
     // write the length
-    if (binary)
-        lib.writeNumber4(data.size());
+    lib.writeNumber4(data.size());
     offset += 4;
 
     // write the payload
-    if (binary) {
-        lib.writeByteArray(data);
-    }
+    lib.writeByteArray(data);
     offset += data.size();
 
     return offset;
@@ -339,7 +334,6 @@ RCCResourceLibrary::Strings::Strings() :
 
 RCCResourceLibrary::RCCResourceLibrary(quint8 formatVersion)
   : m_root(nullptr),
-    m_format(Binary),
     m_verbose(false),
     m_compressionAlgo(CompressionAlgorithm::Best),
     m_compressLevel(CONSTANT_COMPRESSLEVEL_DEFAULT),
@@ -609,7 +603,7 @@ bool RCCResourceLibrary::interpretResourceFile(QIODevice *inputDevice,
     if (m_root == nullptr) {
         const QString msg = QString::fromLatin1("RCC: Warning: No resources in '%1'.\n").arg(fname);
         m_errorDevice->write(msg.toUtf8());
-        if (!listMode && m_format == Binary) {
+        if (!listMode) {
             // create dummy entry, otherwise loading with QResource will crash
             m_root = new RCCFileInfo{};
             m_root->m_flags = RCCFileInfo::Directory;
@@ -816,7 +810,7 @@ int RCCResourceLibrary::parseCompressionLevel(CompressionAlgorithm algo, const Q
     return 0;
 }
 
-bool RCCResourceLibrary::output(QIODevice &outDevice, QIODevice &tempDevice, QIODevice &errorDevice)
+bool RCCResourceLibrary::output(QIODevice &outDevice, QIODevice &errorDevice)
 {
     m_errorDevice = &errorDevice;
 
@@ -849,110 +843,75 @@ bool RCCResourceLibrary::output(QIODevice &outDevice, QIODevice &tempDevice, QIO
     return true;
 }
 
-void RCCResourceLibrary::writeDecimal(int value)
-{
-    Q_ASSERT(m_format != RCCResourceLibrary::Binary);
-    char buf[std::numeric_limits<int>::digits10 + 2];
-    int n = snprintf(buf, sizeof(buf), "%d", value);
-    write(buf, n);
-}
+// void RCCResourceLibrary::writeDecimal(int value)
+// {
+//     Q_ASSERT(m_format != RCCResourceLibrary::Binary);
+//     char buf[std::numeric_limits<int>::digits10 + 2];
+//     int n = snprintf(buf, sizeof(buf), "%d", value);
+//     write(buf, n);
+// }
 
-static const char hexDigits[] = "0123456789abcdef";
+// static const char hexDigits[] = "0123456789abcdef";
 
-inline void RCCResourceLibrary::write2HexDigits(quint8 number)
-{
-    writeChar(hexDigits[number >> 4]);
-    writeChar(hexDigits[number & 0xf]);
-}
+// inline void RCCResourceLibrary::write2HexDigits(quint8 number)
+// {
+//     writeChar(hexDigits[number >> 4]);
+//     writeChar(hexDigits[number & 0xf]);
+// }
 
-void RCCResourceLibrary::writeHex(quint8 tmp)
-{
-    writeChar('0');
-    writeChar('x');
-    if (tmp < 16)
-        writeChar(hexDigits[tmp]);
-    else
-        write2HexDigits(tmp);
-    writeChar(',');
-}
+// void RCCResourceLibrary::writeHex(quint8 tmp)
+// {
+//     writeChar('0');
+//     writeChar('x');
+//     if (tmp < 16)
+//         writeChar(hexDigits[tmp]);
+//     else
+//         write2HexDigits(tmp);
+//     writeChar(',');
+// }
 
 void RCCResourceLibrary::writeNumber2(quint16 number)
 {
-    if (m_format == RCCResourceLibrary::Binary) {
-        writeChar(number >> 8);
-        writeChar(number);
-    } else {
-        writeHex(number >> 8);
-        writeHex(number);
-    }
+    writeChar(number >> 8);
+    writeChar(number);
 }
 
 void RCCResourceLibrary::writeNumber4(quint32 number)
 {
-    if (m_format == RCCResourceLibrary::Binary) {
-        writeChar(number >> 24);
-        writeChar(number >> 16);
-        writeChar(number >> 8);
-        writeChar(number);
-    } else {
-        writeHex(number >> 24);
-        writeHex(number >> 16);
-        writeHex(number >> 8);
-        writeHex(number);
-    }
+    writeChar(number >> 24);
+    writeChar(number >> 16);
+    writeChar(number >> 8);
+    writeChar(number);
 }
 
 void RCCResourceLibrary::writeNumber8(quint64 number)
 {
-    if (m_format == RCCResourceLibrary::Binary) {
-        writeChar(number >> 56);
-        writeChar(number >> 48);
-        writeChar(number >> 40);
-        writeChar(number >> 32);
-        writeChar(number >> 24);
-        writeChar(number >> 16);
-        writeChar(number >> 8);
-        writeChar(number);
-    } else {
-        writeHex(number >> 56);
-        writeHex(number >> 48);
-        writeHex(number >> 40);
-        writeHex(number >> 32);
-        writeHex(number >> 24);
-        writeHex(number >> 16);
-        writeHex(number >> 8);
-        writeHex(number);
-    }
+    writeChar(number >> 56);
+    writeChar(number >> 48);
+    writeChar(number >> 40);
+    writeChar(number >> 32);
+    writeChar(number >> 24);
+    writeChar(number >> 16);
+    writeChar(number >> 8);
+    writeChar(number);
 }
 
 bool RCCResourceLibrary::writeHeader()
 {
-    switch (m_format) {
-    case Binary:
-        writeString("qres");
-        writeNumber4(0);
-        writeNumber4(0);
-        writeNumber4(0);
-        writeNumber4(0);
-        if (m_formatVersion >= 3)
-            writeNumber4(m_overallFlags);
-        break;
-    default:
-        break;
-    }
+    writeString("qres");
+    writeNumber4(0);
+    writeNumber4(0);
+    writeNumber4(0);
+    writeNumber4(0);
+    if (m_formatVersion >= 3)
+        writeNumber4(m_overallFlags);
     return true;
 }
 
 bool RCCResourceLibrary::writeDataBlobs()
 {
     Q_ASSERT(m_errorDevice);
-    switch (m_format) {
-    case Binary:
-        m_dataOffset = m_out.size();
-        break;
-    default:
-        break;
-    }
+    m_dataOffset = m_out.size();
 
     if (!m_root)
         return false;
@@ -981,13 +940,7 @@ bool RCCResourceLibrary::writeDataBlobs()
 
 bool RCCResourceLibrary::writeDataNames()
 {
-    switch (m_format) {
-    case Binary:
-        m_namesOffset = m_out.size();
-        break;
-    default:
-        break;
-    }
+    m_namesOffset = m_out.size();
 
     QHash<QString, int> names;
     QStack<RCCFileInfo*> pending;
@@ -1025,13 +978,7 @@ struct qt_rcc_compare_hash
 
 bool RCCResourceLibrary::writeDataStructure()
 {
-    switch (m_format) {
-    case Binary:
-        m_treeOffset = m_out.size();
-        break;
-    default:
-        break;
-    }
+    m_treeOffset = m_out.size();
 
     QStack<RCCFileInfo*> pending;
 
@@ -1103,35 +1050,33 @@ void RCCResourceLibrary::writeAddNamespaceFunction(const QByteArray &name)
 
 bool RCCResourceLibrary::writeInitializer()
 {
-    if (m_format == Binary) {
-        int i = 4;
-        char *p = m_out.data();
-        p[i++] = 0;
-        p[i++] = 0;
-        p[i++] = 0;
-        p[i++] = m_formatVersion;
+    int i = 4;
+    char *p = m_out.data();
+    p[i++] = 0;
+    p[i++] = 0;
+    p[i++] = 0;
+    p[i++] = m_formatVersion;
 
-        p[i++] = (m_treeOffset >> 24) & 0xff;
-        p[i++] = (m_treeOffset >> 16) & 0xff;
-        p[i++] = (m_treeOffset >>  8) & 0xff;
-        p[i++] = (m_treeOffset >>  0) & 0xff;
+    p[i++] = (m_treeOffset >> 24) & 0xff;
+    p[i++] = (m_treeOffset >> 16) & 0xff;
+    p[i++] = (m_treeOffset >>  8) & 0xff;
+    p[i++] = (m_treeOffset >>  0) & 0xff;
 
-        p[i++] = (m_dataOffset >> 24) & 0xff;
-        p[i++] = (m_dataOffset >> 16) & 0xff;
-        p[i++] = (m_dataOffset >>  8) & 0xff;
-        p[i++] = (m_dataOffset >>  0) & 0xff;
+    p[i++] = (m_dataOffset >> 24) & 0xff;
+    p[i++] = (m_dataOffset >> 16) & 0xff;
+    p[i++] = (m_dataOffset >>  8) & 0xff;
+    p[i++] = (m_dataOffset >>  0) & 0xff;
 
-        p[i++] = (m_namesOffset >> 24) & 0xff;
-        p[i++] = (m_namesOffset >> 16) & 0xff;
-        p[i++] = (m_namesOffset >>  8) & 0xff;
-        p[i++] = (m_namesOffset >>  0) & 0xff;
+    p[i++] = (m_namesOffset >> 24) & 0xff;
+    p[i++] = (m_namesOffset >> 16) & 0xff;
+    p[i++] = (m_namesOffset >>  8) & 0xff;
+    p[i++] = (m_namesOffset >>  0) & 0xff;
 
-        if (m_formatVersion >= 3) {
-            p[i++] = (m_overallFlags >> 24) & 0xff;
-            p[i++] = (m_overallFlags >> 16) & 0xff;
-            p[i++] = (m_overallFlags >>  8) & 0xff;
-            p[i++] = (m_overallFlags >>  0) & 0xff;
-        }
+    if (m_formatVersion >= 3) {
+        p[i++] = (m_overallFlags >> 24) & 0xff;
+        p[i++] = (m_overallFlags >> 16) & 0xff;
+        p[i++] = (m_overallFlags >>  8) & 0xff;
+        p[i++] = (m_overallFlags >>  0) & 0xff;
     }
     return true;
 }

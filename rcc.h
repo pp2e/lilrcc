@@ -27,13 +27,9 @@ public:
     RCCResourceLibrary(quint8 formatVersion);
     ~RCCResourceLibrary();
 
-    bool output(QIODevice &outDevice, QIODevice &tempDevice, QIODevice &errorDevice);
+    bool output(QIODevice &outDevice, QIODevice &errorDevice);
 
     bool readFiles(QIODevice &errorDevice);
-
-    enum Format { Binary, /*C_Code, Pass1, Pass2, Python_Code*/ };
-    void setFormat(Format f) { m_format = f; }
-    Format format() const { return m_format; }
 
     void setInputFiles(const QStringList &files) { m_fileNames = files; }
     QStringList inputFiles() const { return m_fileNames; }
@@ -111,9 +107,9 @@ private:
     bool writeInitializer();
     void writeMangleNamespaceFunction(const QByteArray &name);
     void writeAddNamespaceFunction(const QByteArray &name);
-    void writeDecimal(int value);
-    void writeHex(quint8 number);
-    void write2HexDigits(quint8 number);
+    // void writeDecimal(int value);
+    // void writeHex(quint8 number);
+    // void write2HexDigits(quint8 number);
     void writeNumber2(quint16 number);
     void writeNumber4(quint32 number);
     void writeNumber8(quint64 number);
@@ -132,7 +128,6 @@ private:
     QString m_resourceRoot;
     // QString m_initName;
     QString m_outputName;
-    Format m_format;
     bool m_verbose;
     CompressionAlgorithm m_compressionAlgo;
     int m_compressLevel;
