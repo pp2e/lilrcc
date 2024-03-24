@@ -1,6 +1,6 @@
 # lilrcc
 
-
+Attempt to minimize code of rcc tool
 
 ## Getting started
 

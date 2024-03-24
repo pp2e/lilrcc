@@ -1,0 +1,11 @@
+CMakeLists.txt.user
+*.pro.user
+*.pro.user.*
+*.tar.bz2
+build/
+parts/
+stage/
+prime/
+snap/.snapcraft
+.DS_Store
+._*
