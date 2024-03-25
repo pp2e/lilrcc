@@ -34,12 +34,6 @@ public:
     void setInputFiles(const QStringList &files) { m_fileNames = files; }
     QStringList inputFiles() const { return m_fileNames; }
 
-    // QStringList dataFiles() const;
-
-    // Return a map of resource identifier (':/newPrefix/images/p1.png') to file.
-    typedef QHash<QString, QString> ResourceDataFileMap;
-    // ResourceDataFileMap resourceDataFileMap() const;
-
     void setVerbose(bool b) { m_verbose = b; }
     bool verbose() const { return m_verbose; }
 
@@ -105,18 +99,14 @@ private:
     bool writeDataNames();
     bool writeDataStructure();
     bool writeInitializer();
-    void writeMangleNamespaceFunction(const QByteArray &name);
-    void writeAddNamespaceFunction(const QByteArray &name);
-    // void writeDecimal(int value);
-    // void writeHex(quint8 number);
-    // void write2HexDigits(quint8 number);
     void writeNumber2(quint16 number);
     void writeNumber4(quint32 number);
     void writeNumber8(quint64 number);
     void writeChar(char c) { m_out.append(c); }
     void writeByteArray(const QByteArray &);
     void write(const char *, int len);
-    void writeString(const char *s) { write(s, static_cast<int>(strlen(s))); }
+    // void writeString(const char *s) { write(s, static_cast<int>(strlen(s))); }
+    void writeString(const char *s);
 
 #if QT_CONFIG(zstd)
     ZSTD_CCtx *m_zstdCCtx;

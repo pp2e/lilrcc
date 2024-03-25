@@ -1,0 +1,6 @@
+4 bytes - 'qres'
+4 bytes - format version (current is 3)
+4 bytes - tree offset
+4 bytes - data offset
+4 bytes - names offset
+4 bytes - overall flags

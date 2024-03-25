@@ -32,6 +32,11 @@ enum {
     CONSTANT_COMPRESSTHRESHOLD_DEFAULT = 70
 };
 
+void RCCResourceLibrary::writeByteArray(const QByteArray &other)
+{
+    m_out.append(other);
+}
+
 void RCCResourceLibrary::write(const char *str, int len)
 {
     int n = m_out.size();
@@ -39,9 +44,9 @@ void RCCResourceLibrary::write(const char *str, int len)
     memcpy(m_out.data() + n, str, len);
 }
 
-void RCCResourceLibrary::writeByteArray(const QByteArray &other)
+void RCCResourceLibrary::writeString(const char *s)
 {
-    m_out.append(other);
+    write(s, static_cast<int>(strlen(s)));
 }
 
 static inline QString msgOpenReadFailed(const QString &fname, const QString &why)
@@ -715,52 +720,6 @@ bool RCCResourceLibrary::readFiles(QIODevice &errorDevice)
     return true;
 }
 
-// QStringList RCCResourceLibrary::dataFiles() const
-// {
-//     QStringList ret;
-//     QStack<RCCFileInfo*> pending;
-
-//     if (!m_root)
-//         return ret;
-//     pending.push(m_root);
-//     while (!pending.isEmpty()) {
-//         RCCFileInfo *file = pending.pop();
-//         for (auto it = file->m_children.begin();
-//             it != file->m_children.end(); ++it) {
-//             RCCFileInfo *child = it.value();
-//             if (child->m_flags & RCCFileInfo::Directory)
-//                 pending.push(child);
-//             else
-//                 ret.append(child->m_fileInfo.filePath());
-//         }
-//     }
-//     return ret;
-// }
-
-// Determine map of resource identifier (':/newPrefix/images/p1.png') to file via recursion
-static void resourceDataFileMapRecursion(const RCCFileInfo *m_root, const QString &path, RCCResourceLibrary::ResourceDataFileMap &m)
-{
-    const QChar slash = u'/';
-    const auto cend = m_root->m_children.constEnd();
-    for (auto it = m_root->m_children.constBegin(); it != cend; ++it) {
-        const RCCFileInfo *child = it.value();
-        const QString childName = path + slash + child->m_name;
-        if (child->m_flags & RCCFileInfo::Directory) {
-            resourceDataFileMapRecursion(child, childName, m);
-        } else {
-            m.insert(childName, child->m_fileInfo.filePath());
-        }
-    }
-}
-
-// RCCResourceLibrary::ResourceDataFileMap RCCResourceLibrary::resourceDataFileMap() const
-// {
-//     ResourceDataFileMap rc;
-//     if (m_root)
-//         resourceDataFileMapRecursion(m_root, QString(u':'),  rc);
-//     return rc;
-// }
-
 RCCResourceLibrary::CompressionAlgorithm RCCResourceLibrary::parseCompressionAlgorithm(QStringView value, QString *errorMsg)
 {
     if (value == "best"_L1)
@@ -842,33 +801,6 @@ bool RCCResourceLibrary::output(QIODevice &outDevice, QIODevice &errorDevice)
     outDevice.write(m_out.constData(), m_out.size());
     return true;
 }
-
-// void RCCResourceLibrary::writeDecimal(int value)
-// {
-//     Q_ASSERT(m_format != RCCResourceLibrary::Binary);
-//     char buf[std::numeric_limits<int>::digits10 + 2];
-//     int n = snprintf(buf, sizeof(buf), "%d", value);
-//     write(buf, n);
-// }
-
-// static const char hexDigits[] = "0123456789abcdef";
-
-// inline void RCCResourceLibrary::write2HexDigits(quint8 number)
-// {
-//     writeChar(hexDigits[number >> 4]);
-//     writeChar(hexDigits[number & 0xf]);
-// }
-
-// void RCCResourceLibrary::writeHex(quint8 tmp)
-// {
-//     writeChar('0');
-//     writeChar('x');
-//     if (tmp < 16)
-//         writeChar(hexDigits[tmp]);
-//     else
-//         write2HexDigits(tmp);
-//     writeChar(',');
-// }
 
 void RCCResourceLibrary::writeNumber2(quint16 number)
 {
@@ -1024,28 +956,6 @@ bool RCCResourceLibrary::writeDataStructure()
         }
     }
     return true;
-}
-
-void RCCResourceLibrary::writeMangleNamespaceFunction(const QByteArray &name)
-{
-    if (m_useNameSpace) {
-        writeString("QT_RCC_MANGLE_NAMESPACE(");
-        writeByteArray(name);
-        writeChar(')');
-    } else {
-        writeByteArray(name);
-    }
-}
-
-void RCCResourceLibrary::writeAddNamespaceFunction(const QByteArray &name)
-{
-    if (m_useNameSpace) {
-        writeString("QT_RCC_PREPEND_NAMESPACE(");
-        writeByteArray(name);
-        writeChar(')');
-    } else {
-        writeByteArray(name);
-    }
 }
 
 bool RCCResourceLibrary::writeInitializer()
