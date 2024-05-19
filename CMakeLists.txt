@@ -11,6 +11,7 @@ qt_add_executable(lilrcc
     main.cpp
     rcc.cpp
     rcc.h
+    lilrcc.h lilrcc.cpp
 )
 
 target_link_libraries(lilrcc

@@ -1,6 +1,29 @@
 4 bytes - 'qres'
-4 bytes - format version (current is 3)
+4 bytes - format version, current is 3
 4 bytes - tree offset
 4 bytes - data offset
 4 bytes - names offset
-4 bytes - overall flags
+(4 bytes - overall flags) if version is >=3
+??? bytes - binary data [
+    4 bytes - lengts
+    length bytes - data
+]
+??? bytes - file names [
+    2 bytes - length of name in unicode letters
+    4 bytes - name hash, used in binary search file in directory
+    length*2 bytes - name of file
+]
+??? bytes - tree structure [
+    4 bytes - name offset, relative to global names offset
+    2 bytes - flags, 2 if tree entry is directory, 1 if file zlib compressed, 4 if file zstd compressed
+    if directory (
+        4 bytes - children count
+        4 bytes - first child number in this list
+    )
+    if file (
+        2 bytes - language
+        2 bytes - territory
+        4 bytes - offset of content in binary data section, relative to global data offset
+    )
+    (8 bytes - last modification date) if version is >=2
+]

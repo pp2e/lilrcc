@@ -990,3 +990,4 @@ bool RCCResourceLibrary::writeInitializer()
     }
     return true;
 }
+
