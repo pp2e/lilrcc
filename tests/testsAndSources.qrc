@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/tests">
+        <file>empty.qrc</file>
+        <file>testsAndSources.qrc</file>
+    </qresource>
+    <qresource prefix="/sources/">
+        <file>../CMakeLists.txt</file>
+        <file>../main.cpp</file>
+        <file>../lilrcc.h</file>
+        <file>../lilrcc.cpp</file>
+    </qresource>
+</RCC>

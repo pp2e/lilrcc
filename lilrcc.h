@@ -4,6 +4,18 @@
 #include <QTextStream>
 #include <QString>
 
+struct TreeEntry {
+    quint32 nameOffset;
+    quint16 flags;
+    // directory stuff
+    quint32 childrenCount;
+    quint32 firstChild;
+    // file stuff
+    quint16 language;
+    quint16 terrirory;
+    quint32 dataOffset;
+};
+
 class LilResourceLibrary {
     enum Flags
     {
@@ -18,20 +30,25 @@ public:
     LilResourceLibrary(QIODevice *device);
 
     void printTree(QTextStream &out);
+    bool ls(QString path, QString &error);
     bool getFile(QString path, QTextStream &out, QString &error);
     // bool rmFile(QString path, QTextStream &out);
 
 private:
+    // Various functions which move QIODevice read position, probably should be moved into separate class
     void readHeader();
     quint8 readNumber();
     quint16 readNumber2();
     quint32 readNumber4();
+    const TreeEntry readTreeEntry(int entryNumber);
+    QString readName(const TreeEntry &entry);
+    quint32 readHash(const TreeEntry &entry);
+    QByteArray readData(const TreeEntry &entry);
 
-    QString readName(quint32 offset);
-    void printFileTree(int offset, QTextStream &out);
+    void printDirTree(const TreeEntry &rootEntry, QTextStream &out);
 
-    quint32 findChild(quint32 parentOffset, quint32 searchHash, QString &error);
-    quint32 getEntry(QString path, QString &error);
+    TreeEntry findChild(const TreeEntry &parent, quint32 searchHash, QString &error);
+    TreeEntry getEntry(QString path, QString &error);
 
     QIODevice *m_device;
     quint32 m_version;

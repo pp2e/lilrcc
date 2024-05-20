@@ -2,72 +2,74 @@
 // Copyright (C) 2018 Intel Corporation.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-// #include "rcc.h"
 #include "lilrcc.h"
 
-#include <qdebug.h>
-#include <qdir.h>
-#include <qfile.h>
-#include <qfileinfo.h>
-#include <qhashfunctions.h>
-#include <qtextstream.h>
-#include <qatomic.h>
-#include <qglobal.h>
-#include <qcoreapplication.h>
-#include <qcommandlineoption.h>
-#include <qcommandlineparser.h>
+#include <QCoreApplication>
+#include <QCommandLineParser>
+#include <QFile>
 
 using namespace Qt::StringLiterals;
 
-int runRcc(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
     QCommandLineParser parser;
     parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
-    parser.setApplicationDescription("Qt Resource reCompiler version");
+    parser.setApplicationDescription("lil Qt Resource reCompiler");
     parser.addHelpOption();
     parser.addVersionOption();
 
-    parser.addPositionalArgument(QStringLiteral("file"), QStringLiteral("Rcc file to work with."));
+    parser.addPositionalArgument(QStringLiteral("<file>"), QStringLiteral("Existing rcc file in your filesystem or where you wanna create it"));
+    parser.addPositionalArgument(QStringLiteral("<action>"), QStringLiteral("Linux command-like what program should do\n"
+                                                                          "ls [path]\n"
+                                                                          "cat <file>"
+                                                                          "tree"));
+    parser.addPositionalArgument(QStringLiteral("[<args>]"), QStringLiteral("Arguments for command"));
 
-    QCommandLineOption catOption(QStringLiteral("cat"), QStringLiteral("Print <path> file to console. Use pipes to save"), QStringLiteral("path"));
-    parser.addOption(catOption);
-
-    //parse options
     parser.process(app);
 
-    if (parser.positionalArguments().isEmpty()) {
-        qCritical() << "No files specified";
+    QStringList args = parser.positionalArguments();
+    if (args.isEmpty()) {
+        qCritical() << "Please specify file";
+        parser.showHelp(1);
+    }
+    QFile file(args.first());
+    if (!file.exists()) {
+        qCritical() << "File does not exist";
         return 1;
     }
-    if (parser.positionalArguments().size() > 1) {
-        qCritical() << "Too many files";
-        return 1;
+    if (args.size() < 2) {
+        qCritical() << "Please specity action";
+        parser.showHelp(1);
     }
-    QFile file(parser.positionalArguments().first());
     file.open(QIODeviceBase::ReadOnly);
     LilResourceLibrary lillib(&file);
     QTextStream out(stdout);
-    if (parser.isSet(catOption)) {
-        if (parser.value(catOption).isEmpty()) {
+    if (args[1] == "cat") {
+        if (args.size() < 3) {
             qCritical() << "Please specify path to file after cat option\n";
             return 1;
         }
         QString error_string;
-        lillib.getFile(parser.value(catOption), out, error_string);
+        lillib.getFile(args[2], out, error_string);
         if (!error_string.isEmpty()) {
-            QTextStream error(stderr);
-            error << error_string << "\n";
+            qCritical() << error_string << "\n";
             return 1;
         }
-    } else {
+    } else if (args[1] == "ls") {
+        QString path = args.size() < 3 ? "/" : args[2];
+        QString error_string;
+        lillib.ls(path, error_string);
+        if (!error_string.isEmpty()) {
+            qCritical() << error_string << "\n";
+            return 1;
+        }
+    } else if (args[1] == "tree") {
         lillib.printTree(out);
+    } else {
+        qCritical() << "Unknown action specified, please select smarter";
+        parser.showHelp(1);
     }
     return 0;
-}
-
-int main(int argc, char *argv[])
-{
-    return runRcc(argc, argv);
 }
