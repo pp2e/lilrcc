@@ -21,18 +21,6 @@ void LilResourceLibrary::printTree(QTextStream &out) {
 
     TreeEntry rootEntry = readTreeEntry(0);
     printDirTree(rootEntry, out);
-//    for (int i = 0; i < rootEntry.childrenCount; i++) {
-//        const TreeEntry entry = readTreeEntry(rootEntry.firstChild+i);
-//        out << "├── " << readName(entry);
-//        if (entry.flags & Flags::Directory) {
-//            out << "\n";
-//            printDirTree(entry, out);
-//        } else {
-//            if (entry.flags & Flags::CompressedZstd)
-//                out << " - zstd, cannot read";
-//            out << "\n";
-//        }
-//    }
     if (m_overallFlags & Flags::CompressedZstd) {
         out << "Looks like some files was compessed with zstd. Zstd currently is not supported by lilrcc\n";
     }
@@ -72,11 +60,28 @@ bool LilResourceLibrary::getFile(QString path, QTextStream &out, QString &error)
     return true;
 }
 
-// bool LilResourceLibrary::rmFile(QString path, QTextStream &out) {
-//     quint32 offset = getEntry(path, error);
-//     if (!error.isEmpty()) return false;
-//     quint16 flags = readNumber2(m_treeOffset+m_treeEntrySize*offset+4);
-// }
+void LilResourceLibrary::printAllFiles() {
+    TreeEntry root = readTreeEntry(0);
+    int children = root.childrenCount;
+    int i = 0;
+    while (i < children) {
+        TreeEntry entry = readTreeEntry(++i);
+        if (!entry.isDir())
+            qDebug() << entry.dataOffset << readName(entry);
+        children += entry.childrenCount;
+    }
+}
+
+bool LilResourceLibrary::rmFile(QString path, QString &error) {
+    const TreeEntry entry = getEntry(path, error);
+    if (!error.isEmpty()) return false;
+    qDebug() << readName(entry);
+    return false;
+}
+
+void LilResourceLibrary::save(QTextStream &out) {
+    out << "123";
+}
 
 void LilResourceLibrary::readHeader() {
     m_version = readNumber4();

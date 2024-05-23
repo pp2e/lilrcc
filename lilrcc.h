@@ -4,6 +4,14 @@
 #include <QTextStream>
 #include <QString>
 
+enum Flags {
+    // must match qresource.cpp and rcc.h
+    NoFlags = 0x00,
+    Compressed = 0x01,
+    Directory = 0x02,
+    CompressedZstd = 0x04
+};
+
 struct TreeEntry {
     quint32 nameOffset;
     quint16 flags;
@@ -14,26 +22,22 @@ struct TreeEntry {
     quint16 language;
     quint16 terrirory;
     quint32 dataOffset;
+
+    bool isDir() {
+        return flags & Flags::Directory;
+    }
 };
 
 class LilResourceLibrary {
-    enum Flags
-    {
-        // must match qresource.cpp
-        NoFlags = 0x00,
-        Compressed = 0x01,
-        Directory = 0x02,
-        CompressedZstd = 0x04
-    };
-
 public:
     LilResourceLibrary(QIODevice *device);
 
     void printTree(QTextStream &out);
     bool ls(QString path, QString &error);
     bool getFile(QString path, QTextStream &out, QString &error);
-    // bool rmFile(QString path, QTextStream &out);
-
+    void printAllFiles();
+    bool rmFile(QString path, QString &error);
+    void save(QTextStream &out);
 private:
     // Various functions which move QIODevice read position, probably should be moved into separate class
     void readHeader();

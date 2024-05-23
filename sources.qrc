@@ -1,0 +1,7 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>main.cpp</file>
+    <file>rcc.cpp</file>
+    <file>rcc.h</file>
+</qresource>
+</RCC>
