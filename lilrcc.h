@@ -4,12 +4,12 @@
 #include <QTextStream>
 #include <QString>
 
-#include "lilrccreader.h"
+#include "resourcereader.h"
 #include "tree.h"
 
-class LilResourceLibrary {
+class ResourceLibrary {
 public:
-    LilResourceLibrary(QIODevice *device);
+    ResourceLibrary(QIODevice *device);
 
     void printTree(QTextStream &out);
     bool ls(QString path, QString &error);
@@ -21,10 +21,10 @@ private:
     void appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry);
     void printDirTree(ResourceTreeDir *rootNode, QTextStream &out);
 
-    TreeEntry findChild(const TreeEntry &parent, quint32 searchHash, QString &error);
-    TreeEntry getEntry(QString path, QString &error);
+    ResourceTreeNode *findChild(ResourceTreeDir *parent, quint32 searchHash, QString &error);
+    ResourceTreeNode *getNode(QString path, QString &error);
 
-    LilResourceReader m_reader;
+    ResourceReader m_reader;
     ResourceTreeDir m_root;
 };
 

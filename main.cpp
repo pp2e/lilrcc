@@ -40,11 +40,11 @@ int main(int argc, char *argv[]) {
     parser.process(app);
 
     QStringList args = parser.positionalArguments();
-    QString inFile = args.first();
-    if (inFile.isEmpty()) {
+    if (args.isEmpty()) {
         qCritical() << "Please specify file";
         parser.showHelp(1);
     }
+    QString inFile = args.first();
     QFile file(inFile);
     if (!file.exists()) {
         qCritical() << "File does not exist";
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
         parser.showHelp(1);
     }
     file.open(QIODeviceBase::ReadOnly);
-    LilResourceLibrary lillib(&file);
+    ResourceLibrary lillib(&file);
     QTextStream out(stdout);
     if (args[1] == "cat") {
         ASSERT(args.size() >= 3, "Please specify path to file after cat option")

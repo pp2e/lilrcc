@@ -10,7 +10,7 @@ find_package(zstd)
 qt_add_executable(lilrcc
     main.cpp
     lilrcc.h lilrcc.cpp
-    lilrccreader.h lilrccreader.cpp
+    resourcereader.h resourcereader.cpp
     tree.h tree.cpp
 )
 
