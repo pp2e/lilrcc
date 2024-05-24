@@ -10,6 +10,8 @@ find_package(zstd)
 qt_add_executable(lilrcc
     main.cpp
     lilrcc.h lilrcc.cpp
+    lilrccreader.h lilrccreader.cpp
+    tree.h tree.cpp
 )
 
 target_link_libraries(lilrcc

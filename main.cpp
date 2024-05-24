@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
 #include "lilrcc.h"
+#include "tree.h"
 
 #include <QCoreApplication>
 #include <QCommandLineParser>
@@ -90,13 +91,13 @@ int main(int argc, char *argv[]) {
             qCritical() << "Please specify path to file after rm option\n";
             return 1;
         }
-        QString error_string;
-        lillib.rmFile(args[2], error_string);
-        if (!error_string.isEmpty()) {
-            qCritical() << error_string << "\n";
-            return 1;
-        }
-        lillib.save(out);
+        // QString error_string;
+        // lillib.rmFile(args[2], error_string);
+        // if (!error_string.isEmpty()) {
+        //     qCritical() << error_string << "\n";
+        //     return 1;
+        // }
+        // lillib.save(out);
     } else {
         qCritical() << "Unknown action specified, please select smarter";
         parser.showHelp(1);
