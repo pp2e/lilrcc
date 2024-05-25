@@ -10,19 +10,19 @@ ResourceReader::ResourceReader(QIODevice *device) {
         return;
     }
 
-    m_version = readNumber4();
-    m_treeOffset = readNumber4();
-    m_dataOffset = readNumber4();
-    m_namesOffset = readNumber4();
+    m_readerData.version = readNumber4();
+    m_readerData.treeOffset = readNumber4();
+    m_readerData.dataOffset = readNumber4();
+    m_readerData.namesOffset = readNumber4();
 
     // Calculate tree entry size
-    m_treeEntrySize = 14;
-    if (m_version >= 2)
+    m_readerData.treeEntrySize = 14;
+    if (m_readerData.version >= 2)
         // Since version 2 rcc also have last modification date
-        m_treeEntrySize += 8;
+        m_readerData.treeEntrySize += 8;
 
-    if (m_version >= 3) {
-        m_overallFlags = readNumber4();
+    if (m_readerData.version >= 3) {
+        m_readerData.overallFlags = readNumber4();
     }
 }
 
@@ -56,7 +56,7 @@ quint64 ResourceReader::readNumber8() {
 }
 
 const TreeEntry ResourceReader::readTreeEntry(int entryNumber) {
-    m_device->seek(m_treeOffset + entryNumber*m_treeEntrySize);
+    m_device->seek(m_readerData.treeOffset + entryNumber*m_readerData.treeEntrySize);
     quint32 nameOffset = readNumber4();
     quint16 flags = readNumber2();
     if (flags & Flags::Directory) {
@@ -73,7 +73,7 @@ const TreeEntry ResourceReader::readTreeEntry(int entryNumber) {
 }
 
 QString ResourceReader::readName(const TreeEntry &entry) {
-    m_device->seek(m_namesOffset + entry.nameOffset);
+    m_device->seek(m_readerData.namesOffset + entry.nameOffset);
     quint16 nameLength = readNumber2();
     // Name hash, we dont need here
     m_device->skip(4);
@@ -85,16 +85,12 @@ QString ResourceReader::readName(const TreeEntry &entry) {
 }
 
 quint32 ResourceReader::readHash(const TreeEntry &entry) {
-    m_device->seek(m_namesOffset + entry.nameOffset + 2);
+    m_device->seek(m_readerData.namesOffset + entry.nameOffset + 2);
     return readNumber4();
 }
 
 QByteArray ResourceReader::readData(quint32 dataOffset) {
-    m_device->seek(m_dataOffset + dataOffset);
+    m_device->seek(m_readerData.dataOffset + dataOffset);
     quint32 dataLength = readNumber4();
     return m_device->read(dataLength);
-}
-
-quint32 ResourceReader::overallFlags() {
-    return m_overallFlags;
 }

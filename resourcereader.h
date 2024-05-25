@@ -35,6 +35,15 @@ struct TreeEntry {
     }
 };
 
+struct ReaderData {
+    quint32 version;
+    quint32 treeOffset;
+    quint32 dataOffset;
+    quint32 namesOffset;
+    quint32 overallFlags;
+    quint32 treeEntrySize;
+};
+
 class ResourceReader {
 public:
     ResourceReader(QIODevice *device);
@@ -43,8 +52,7 @@ public:
     QString readName(const TreeEntry &entry);
     quint32 readHash(const TreeEntry &entry);
     QByteArray readData(quint32 dataOffset);
-
-    quint32 overallFlags();
+    ReaderData data();
 
 private:
     quint8 readNumber();
@@ -53,12 +61,7 @@ private:
     quint64 readNumber8();
 
 private:
-    quint32 m_version;
-    quint32 m_treeOffset;
-    quint32 m_dataOffset;
-    quint32 m_namesOffset;
-    quint32 m_overallFlags;
-    quint32 m_treeEntrySize;
+    ReaderData m_readerData;
     QIODevice *m_device;
 };
 

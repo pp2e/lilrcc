@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
 #include "lilrcc.h"
+#include "resourcereader.h"
 #include "tree.h"
 
 #include <QCoreApplication>
@@ -34,12 +35,13 @@ int main(int argc, char *argv[]) {
                                                                           "allfiles"
                                                                           "rm <file>"));
     parser.addPositionalArgument(QStringLiteral("[<args>]"), QStringLiteral("Arguments for command"));
-    QCommandLineOption output({"o", "output"}, "Output file, used in modifying commands, should differ from input");
+    QCommandLineOption output({"o", "output"}, "Output file, used in modifying commands, should differ from input", "outfile");
     parser.addOption(output);
 
     parser.process(app);
 
     QStringList args = parser.positionalArguments();
+    qDebug() << args;
     if (args.isEmpty()) {
         qCritical() << "Please specify file";
         parser.showHelp(1);
@@ -55,7 +57,8 @@ int main(int argc, char *argv[]) {
         parser.showHelp(1);
     }
     file.open(QIODeviceBase::ReadOnly);
-    ResourceLibrary lillib(&file);
+    ResourceReader reader(&file);
+    ResourceLibrary lillib(&reader);
     QTextStream out(stdout);
     if (args[1] == "cat") {
         ASSERT(args.size() >= 3, "Please specify path to file after cat option")
@@ -91,13 +94,14 @@ int main(int argc, char *argv[]) {
             qCritical() << "Please specify path to file after rm option\n";
             return 1;
         }
-        // QString error_string;
-        // lillib.rmFile(args[2], error_string);
-        // if (!error_string.isEmpty()) {
-        //     qCritical() << error_string << "\n";
-        //     return 1;
-        // }
+        QString error_string;
+        lillib.rmFile(args[2], error_string);
+        if (!error_string.isEmpty()) {
+            qCritical() << error_string << "\n";
+            return 1;
+        }
         // lillib.save(out);
+        lillib.printTree(out);
     } else {
         qCritical() << "Unknown action specified, please select smarter";
         parser.showHelp(1);

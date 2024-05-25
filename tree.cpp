@@ -28,6 +28,10 @@ bool ResourceTreeDir::appendChild(ResourceTreeNode *node) {
     return true;
 }
 
+bool ResourceTreeDir::removeChild(ResourceTreeNode *node) {
+    return m_children.removeOne(node);
+}
+
 QList<ResourceTreeNode *> ResourceTreeDir::children() {
     return m_children;
 }

@@ -9,22 +9,26 @@
 
 class ResourceLibrary {
 public:
-    ResourceLibrary(QIODevice *device);
+    ResourceLibrary(ResourceReader *reader);
 
     void printTree(QTextStream &out);
     bool ls(QString path, QString &error);
     bool getFile(QString path, QTextStream &out, QString &error);
     void printAllFiles();
-    // bool rmFile(QString path, QString &error);
+    bool rmFile(QString path, QString &error);
     // void save(QTextStream &out);
+
 private:
-    void appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry);
+    void appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry, ResourceReader *reader);
     void printDirTree(ResourceTreeDir *rootNode, QTextStream &out);
 
-    ResourceTreeNode *findChild(ResourceTreeDir *parent, quint32 searchHash, QString &error);
-    ResourceTreeNode *getNode(QString path, QString &error);
+    static QStringList parsePath(QString path);
 
-    ResourceReader m_reader;
+    ResourceTreeNode *binSearchNode(QList<ResourceTreeNode*> children, quint32 searchHash);
+    ResourceTreeNode *getNode(QStringList path, QString &error);
+
+    ReaderData m_readerData;
+
     ResourceTreeDir m_root;
 };
 

@@ -3,25 +3,25 @@
 #include <QDebug>
 #include <QIODevice>
 
-ResourceLibrary::ResourceLibrary(QIODevice *device)
-    : m_reader(device)
-    , m_root(":", 0)
+ResourceLibrary::ResourceLibrary(ResourceReader *reader)
+    : m_root(":", 0)
 {
-    TreeEntry root = m_reader.readTreeEntry(0);
-    appendChildNodes(&m_root, &root);
+    TreeEntry root = reader->readTreeEntry(0);
+    appendChildNodes(&m_root, &root, reader);
 
 }
 
 void ResourceLibrary::printTree(QTextStream &out) {
     out << m_root.name() << "\n";
     printDirTree(&m_root, out);
-    if (m_reader.overallFlags() & Flags::CompressedZstd) {
+    if (m_readerData.overallFlags & Flags::CompressedZstd) {
         out << "Looks like some files was compessed with zstd. Zstd currently is not supported by lilrcc\n";
     }
 }
 
 bool ResourceLibrary::ls(QString path, QString &error) {
-    ResourceTreeNode *node = getNode(path, error);
+    QStringList pathSegments = parsePath(path);
+    ResourceTreeNode *node = getNode(pathSegments, error);
     if (!error.isEmpty()) return false;
     if (!node->isDir()) {
         error = "Tree entry is file";
@@ -35,7 +35,8 @@ bool ResourceLibrary::ls(QString path, QString &error) {
 }
 
 bool ResourceLibrary::getFile(QString path, QTextStream &out, QString &error) {
-    ResourceTreeNode *node = getNode(path, error);
+    QStringList pathSegments = parsePath(path);
+    ResourceTreeNode *node = getNode(pathSegments, error);
     if (!error.isEmpty()) return false;
     if (node->isDir()) {
         qWarning() << "File is not file (directory)";
@@ -62,34 +63,44 @@ void ResourceLibrary::printAllFiles() {
     }
 }
 
-// bool LilResourceLibrary::rmFile(QString path, QString &error) {
-//     const TreeEntry entry = getEntry(path, error);
-//     if (!error.isEmpty()) return false;
-//     qDebug() << m_reader.readName(entry);
-//     return false;
-// }
+bool ResourceLibrary::rmFile(QString path, QString &error) {
+    QStringList pathSegments = parsePath(path);
+    QString nodeName = pathSegments.takeLast();
+    ResourceTreeNode *node = getNode(pathSegments, error);
+    if (!error.isEmpty()) return false;
+    if (!node->isDir()) {
+        error = "Got file instead of dir";
+        return false;
+    }
+    ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
+    ResourceTreeNode *child = binSearchNode(dir->children(), qt_hash(nodeName));
+    if (!dir->removeChild(child))
+        // dir always have this child, or we would'nt get it
+        Q_UNREACHABLE();
+    return true;
+}
 
 // void LilResourceLibrary::save(QTextStream &out) {
 //     out << "123";
 // }
 
-void ResourceLibrary::appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry) {
+void ResourceLibrary::appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry, ResourceReader *reader) {
     for (int i = 0; i < dirEntry->childrenCount; i++) {
-        TreeEntry child = m_reader.readTreeEntry(dirEntry->firstChild+i);
-        QString name = m_reader.readName(child);
-        quint32 nameHash = m_reader.readHash(child);
+        TreeEntry child = reader->readTreeEntry(dirEntry->firstChild+i);
+        QString name = reader->readName(child);
+        quint32 nameHash = reader->readHash(child);
         if (child.isDir()) {
             ResourceTreeDir *dir = new ResourceTreeDir(name, nameHash);
-            appendChildNodes(dir, &child);
+            appendChildNodes(dir, &child, reader);
             dirNode->appendChild(dir);
         } else if (child.isZlib()) {
-            ResourceTreeFile *file = new ZlibResourceTreeFile(name, nameHash, &m_reader, child.dataOffset);
+            ResourceTreeFile *file = new ZlibResourceTreeFile(name, nameHash, reader, child.dataOffset);
             dirNode->appendChild(file);
         } else if (child.isZstd()) {
             ResourceTreeFile *file = new UnimplementedResourceTreeFile(name, nameHash);
             dirNode->appendChild(file);
         } else {
-            ResourceTreeFile *file = new UncompressedResourceTreeFile(name, nameHash, &m_reader, child.dataOffset);
+            ResourceTreeFile *file = new UncompressedResourceTreeFile(name, nameHash, reader, child.dataOffset);
             dirNode->appendChild(file);
         }
     }
@@ -113,50 +124,48 @@ void ResourceLibrary::printDirTree(ResourceTreeDir *rootNode, QTextStream &out) 
     }
 }
 
+QStringList ResourceLibrary::parsePath(QString path) {
+    // User provided rcc styled path, no problem
+    if (path.startsWith(":/")) path.remove(0, 2);
+    return path.split('/', Qt::SkipEmptyParts);
+}
+
 // uses binary search for fast finding child node with specified hash
-ResourceTreeNode *ResourceLibrary::findChild(ResourceTreeDir *parent, quint32 searchHash, QString &error) {
-    QList<ResourceTreeNode*> children = parent->children();
-    if (children.isEmpty()) {
-        error = "Node has no children";
+ResourceTreeNode *ResourceLibrary::binSearchNode(QList<ResourceTreeNode*> children, quint32 searchHash) {
+    if (children.isEmpty())
         return nullptr;
-    }
+
     int childrenCount = children.size();
     int firstChild = 0;
 
     ResourceTreeNode *node = children.at(firstChild+childrenCount/2);
-    quint32 hash = node->nameHash();
-    while (searchHash != hash) {
-        if (childrenCount == 1) {
-            // Hashes not compared and we have no other options
-            error = "Child not found";
+    while (searchHash != node->nameHash()) {
+        if (childrenCount == 1)
             return nullptr;
-        }
-        if (searchHash < hash)
+
+        if (searchHash < node->nameHash())
             childrenCount /= 2;
         else {
             firstChild += childrenCount/2;
             childrenCount -= childrenCount/2;
         }
         node = children.at(firstChild+childrenCount/2);
-        hash = node->nameHash();
     }
     return node;
 }
-ResourceTreeNode *ResourceLibrary::getNode(QString path, QString &error) {
-    // User provided rcc styled path, no problem
-    if (path.startsWith(":/")) path.remove(0, 2);
-    // Find file
-    QStringList pathSegments = path.split('/', Qt::SkipEmptyParts);
-
+ResourceTreeNode *ResourceLibrary::getNode(QStringList path, QString &error) {
     ResourceTreeNode *node = &m_root;
-    for (QString &segment : pathSegments) {
+    for (QString &segment : path) {
         if (!node->isDir()) {
             error = "Got file instead of dir";
             return nullptr;
         }
         ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
-        node = findChild(dir, qt_hash(segment), error);
-        if (!error.isEmpty()) return {};
+        node = binSearchNode(dir->children(), qt_hash(segment));
+        if (!node) {
+            error = "Entry not found";
+            return nullptr;
+        }
     }
     return node;
 }

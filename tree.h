@@ -28,6 +28,7 @@ public:
 
     bool isDir() override;
     bool appendChild(ResourceTreeNode *node);
+    bool removeChild(ResourceTreeNode *node);
     QList<ResourceTreeNode*> children();
 private:
     QList<ResourceTreeNode*> m_children;

@@ -12,6 +12,7 @@ qt_add_executable(lilrcc
     lilrcc.h lilrcc.cpp
     resourcereader.h resourcereader.cpp
     tree.h tree.cpp
+    resourcewriter.h resourcewriter.cpp
 )
 
 target_link_libraries(lilrcc
