@@ -6,17 +6,22 @@
 ResourceLibrary::ResourceLibrary(ResourceReader *reader)
     : m_root(":", 0)
 {
-    TreeEntry root = reader->readTreeEntry(0);
-    appendChildNodes(&m_root, &root, reader);
+    reader->readTreeDirChildren(&m_root, 0);
+    m_readerData = reader->data();
+}
 
+void ResourceLibrary::getHeader(QTextStream &out) {
+    out << "Version: " << m_readerData.version << "\n";
+    out << "Tree: " << m_readerData.treeOffset << "\n";
+    out << "Data: " << m_readerData.dataOffset << "\n";
+    out << "Names: " << m_readerData.namesOffset << "\n";
+    if (m_readerData.version >= 3)
+        out << "OverallFlags: " << m_readerData.overallFlags << "\n";
 }
 
 void ResourceLibrary::printTree(QTextStream &out) {
     out << m_root.name() << "\n";
     printDirTree(&m_root, out);
-    if (m_readerData.overallFlags & Flags::CompressedZstd) {
-        out << "Looks like some files was compessed with zstd. Zstd currently is not supported by lilrcc\n";
-    }
 }
 
 bool ResourceLibrary::ls(QString path, QString &error) {
@@ -80,30 +85,8 @@ bool ResourceLibrary::rmFile(QString path, QString &error) {
     return true;
 }
 
-// void LilResourceLibrary::save(QTextStream &out) {
-//     out << "123";
-// }
-
-void ResourceLibrary::appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry, ResourceReader *reader) {
-    for (int i = 0; i < dirEntry->childrenCount; i++) {
-        TreeEntry child = reader->readTreeEntry(dirEntry->firstChild+i);
-        QString name = reader->readName(child);
-        quint32 nameHash = reader->readHash(child);
-        if (child.isDir()) {
-            ResourceTreeDir *dir = new ResourceTreeDir(name, nameHash);
-            appendChildNodes(dir, &child, reader);
-            dirNode->appendChild(dir);
-        } else if (child.isZlib()) {
-            ResourceTreeFile *file = new ZlibResourceTreeFile(name, nameHash, reader, child.dataOffset);
-            dirNode->appendChild(file);
-        } else if (child.isZstd()) {
-            ResourceTreeFile *file = new UnimplementedResourceTreeFile(name, nameHash);
-            dirNode->appendChild(file);
-        } else {
-            ResourceTreeFile *file = new UncompressedResourceTreeFile(name, nameHash, reader, child.dataOffset);
-            dirNode->appendChild(file);
-        }
-    }
+void ResourceLibrary::save(ResourceWriter *writer) {
+    writer->write(&m_root, m_readerData.version);
 }
 
 QString tab = "";
@@ -119,6 +102,10 @@ void ResourceLibrary::printDirTree(ResourceTreeDir *rootNode, QTextStream &out) 
             printDirTree(static_cast<ResourceTreeDir*>(node), out);
             tab.chop(4);
         } else {
+            if (dynamic_cast<ZlibResourceTreeFile*>(node))
+                out << " -zlib";
+            if (dynamic_cast<ZstdResourceTreeFile*>(node))
+                out << " -zstd";
             out << "\n";
         }
     }

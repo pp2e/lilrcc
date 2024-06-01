@@ -9,7 +9,7 @@
     length bytes - data
 ]
 ??? bytes - file names [
-    2 bytes - length of name in unicode letters
+    2 bytes - length of name in unicode charcters (16bit)
     4 bytes - name hash, used in binary search file in directory
     length*2 bytes - name of file
 ]

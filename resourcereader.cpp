@@ -1,4 +1,5 @@
 #include "resourcereader.h"
+#include "tree.h"
 
 #include <QDebug>
 
@@ -6,7 +7,7 @@ ResourceReader::ResourceReader(QIODevice *device) {
     m_device = device;
 
     if (m_device->read(4) != "qres") {
-        qDebug() << "not rcc";
+        qWarning() << "File is not rcc";
         return;
     }
 
@@ -15,15 +16,15 @@ ResourceReader::ResourceReader(QIODevice *device) {
     m_readerData.dataOffset = readNumber4();
     m_readerData.namesOffset = readNumber4();
 
+    if (m_readerData.version >= 3) {
+        m_readerData.overallFlags = readNumber4();
+    }
+
     // Calculate tree entry size
     m_readerData.treeEntrySize = 14;
     if (m_readerData.version >= 2)
         // Since version 2 rcc also have last modification date
         m_readerData.treeEntrySize += 8;
-
-    if (m_readerData.version >= 3) {
-        m_readerData.overallFlags = readNumber4();
-    }
 }
 
 quint8 ResourceReader::readNumber() {
@@ -55,25 +56,43 @@ quint64 ResourceReader::readNumber8() {
            + (readNumber() << 0);
 }
 
-const TreeEntry ResourceReader::readTreeEntry(int entryNumber) {
-    m_device->seek(m_readerData.treeOffset + entryNumber*m_readerData.treeEntrySize);
-    quint32 nameOffset = readNumber4();
-    quint16 flags = readNumber2();
-    if (flags & Flags::Directory) {
-        quint32 childrenCount = readNumber4();
-        quint32 firstChild = readNumber4();
-        return {nameOffset, flags, childrenCount, firstChild, 0, 0, 0, 0};
-    } else {
-        quint16 language = readNumber2();
-        quint16 territory = readNumber2();
+void ResourceReader::readTreeDirChildren(ResourceTreeDir *dirNode, int nodeNumber) {
+    m_device->seek(m_readerData.treeOffset + nodeNumber*m_readerData.treeEntrySize+6);
+    quint32 childrenCount = readNumber4();
+    quint32 firstChild = readNumber4();
+
+    for (int i = 0; i < childrenCount; i++) {
+        m_device->seek(m_readerData.treeOffset + (firstChild+i)*m_readerData.treeEntrySize);
+        quint32 nameOffset = readNumber4();
+        quint16 flags = readNumber2();
+
+        QString name = readName(nameOffset);
+        quint32 nameHash = readHash(nameOffset);
+        if (flags & Flags::Directory) {
+            ResourceTreeDir *dir = new ResourceTreeDir(name, nameHash);
+            readTreeDirChildren(dir, firstChild+i);
+            dirNode->appendChild(dir);
+            continue;
+        }
+
+        // file, not dir
+        m_device->seek(m_readerData.treeOffset + (firstChild+i)*m_readerData.treeEntrySize+10);
         quint32 dataOffset = readNumber4();
-        quint64 lastModified = readNumber8();
-        return {nameOffset, flags, 0, 0, language, territory, dataOffset, lastModified};
+        if (flags & Flags::Compressed) {
+            ResourceTreeFile *file = new ZlibResourceTreeFile(name, nameHash, this, dataOffset);
+            dirNode->appendChild(file);
+        } else if (flags & Flags::CompressedZstd) {
+            ResourceTreeFile *file = new ZstdResourceTreeFile(name, nameHash, this, dataOffset);
+            dirNode->appendChild(file);
+        } else {
+            ResourceTreeFile *file = new UncompressedResourceTreeFile(name, nameHash, this, dataOffset);
+            dirNode->appendChild(file);
+        }
     }
 }
 
-QString ResourceReader::readName(const TreeEntry &entry) {
-    m_device->seek(m_readerData.namesOffset + entry.nameOffset);
+QString ResourceReader::readName(quint32 offset) {
+    m_device->seek(m_readerData.namesOffset + offset);
     quint16 nameLength = readNumber2();
     // Name hash, we dont need here
     m_device->skip(4);
@@ -84,8 +103,8 @@ QString ResourceReader::readName(const TreeEntry &entry) {
     return name;
 }
 
-quint32 ResourceReader::readHash(const TreeEntry &entry) {
-    m_device->seek(m_readerData.namesOffset + entry.nameOffset + 2);
+quint32 ResourceReader::readHash(quint32 offset) {
+    m_device->seek(m_readerData.namesOffset + offset + 2);
     return readNumber4();
 }
 
@@ -93,4 +112,8 @@ QByteArray ResourceReader::readData(quint32 dataOffset) {
     m_device->seek(m_readerData.dataOffset + dataOffset);
     quint32 dataLength = readNumber4();
     return m_device->read(dataLength);
+}
+
+ReaderData ResourceReader::data() {
+    return m_readerData;
 }

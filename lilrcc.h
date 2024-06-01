@@ -5,21 +5,22 @@
 #include <QString>
 
 #include "resourcereader.h"
+#include "resourcewriter.h"
 #include "tree.h"
 
 class ResourceLibrary {
 public:
     ResourceLibrary(ResourceReader *reader);
 
+    void getHeader(QTextStream &out);
     void printTree(QTextStream &out);
     bool ls(QString path, QString &error);
     bool getFile(QString path, QTextStream &out, QString &error);
     void printAllFiles();
     bool rmFile(QString path, QString &error);
-    // void save(QTextStream &out);
+    void save(ResourceWriter *writer);
 
 private:
-    void appendChildNodes(ResourceTreeDir *dirNode, TreeEntry *dirEntry, ResourceReader *reader);
     void printDirTree(ResourceTreeDir *rootNode, QTextStream &out);
 
     static QStringList parsePath(QString path);

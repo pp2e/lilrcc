@@ -4,6 +4,7 @@
 
 #include "lilrcc.h"
 #include "resourcereader.h"
+#include "resourcewriter.h"
 #include "tree.h"
 
 #include <QCoreApplication>
@@ -29,11 +30,13 @@ int main(int argc, char *argv[]) {
 
     parser.addPositionalArgument(QStringLiteral("<file>"), QStringLiteral("Existing rcc file in your filesystem or where you wanna create it"));
     parser.addPositionalArgument(QStringLiteral("<action>"), QStringLiteral("Linux command-like what program should do\n"
+                                                                          "header\n"
                                                                           "ls [path]\n"
-                                                                          "cat <file>"
-                                                                          "tree"
-                                                                          "allfiles"
-                                                                          "rm <file>"));
+                                                                          "cat <file>\n"
+                                                                          "tree\n"
+                                                                          "allfiles\n"
+                                                                          "rm <file>\n"
+                                                                          "repack\n"));
     parser.addPositionalArgument(QStringLiteral("[<args>]"), QStringLiteral("Arguments for command"));
     QCommandLineOption output({"o", "output"}, "Output file, used in modifying commands, should differ from input", "outfile");
     parser.addOption(output);
@@ -41,7 +44,6 @@ int main(int argc, char *argv[]) {
     parser.process(app);
 
     QStringList args = parser.positionalArguments();
-    qDebug() << args;
     if (args.isEmpty()) {
         qCritical() << "Please specify file";
         parser.showHelp(1);
@@ -60,7 +62,9 @@ int main(int argc, char *argv[]) {
     ResourceReader reader(&file);
     ResourceLibrary lillib(&reader);
     QTextStream out(stdout);
-    if (args[1] == "cat") {
+    if (args[1] == "header") {
+        lillib.getHeader(out);
+    } else if (args[1] == "cat") {
         ASSERT(args.size() >= 3, "Please specify path to file after cat option")
         QString error_string;
         lillib.getFile(args[2], out, error_string);
@@ -81,12 +85,12 @@ int main(int argc, char *argv[]) {
     } else if (args[1] == "allfiles") {
         lillib.printAllFiles();
     } else if (args[1] == "rm") {
-        QString outDir = parser.value(output);
-        if (outDir.isEmpty()) {
+        QString outFile = parser.value(output);
+        if (outFile.isEmpty()) {
             qCritical() << "Please specify output path via -o option\n";
             return 1;
         }
-        if (QFileInfo(outDir).absoluteFilePath() == QFileInfo(inFile).absoluteFilePath()) {
+        if (QFileInfo(outFile).absoluteFilePath() == QFileInfo(inFile).absoluteFilePath()) {
             qCritical() << "You should not write to input file";
             return 1;
         }
@@ -100,8 +104,26 @@ int main(int argc, char *argv[]) {
             qCritical() << error_string << "\n";
             return 1;
         }
-        // lillib.save(out);
+        QFile outDevice(outFile);
+        outDevice.open(QIODeviceBase::WriteOnly);
+        ResourceWriter writer(&outDevice);
         lillib.printTree(out);
+        lillib.save(&writer);
+    } else if (args[1] == "repack") {
+        QString outFile = parser.value(output);
+        if (outFile.isEmpty()) {
+            qCritical() << "Please specify output path via -o option\n";
+            return 1;
+        }
+        if (QFileInfo(outFile).absoluteFilePath() == QFileInfo(inFile).absoluteFilePath()) {
+            qCritical() << "You should not write to input file";
+            return 1;
+        }
+        QFile outDevice(outFile);
+        outDevice.open(QIODeviceBase::WriteOnly);
+        ResourceWriter writer(&outDevice);
+        lillib.printTree(out);
+        lillib.save(&writer);
     } else {
         qCritical() << "Unknown action specified, please select smarter";
         parser.showHelp(1);

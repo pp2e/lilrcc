@@ -4,37 +4,6 @@
 #include <QString>
 #include <QIODevice>
 
-enum Flags {
-    // must match qresource.cpp and rcc.h
-    NoFlags = 0x00,
-    Compressed = 0x01,
-    Directory = 0x02,
-    CompressedZstd = 0x04
-};
-
-struct TreeEntry {
-    quint32 nameOffset;
-    quint16 flags;
-    // directory stuff
-    quint32 childrenCount;
-    quint32 firstChild;
-    // file stuff
-    quint16 language;
-    quint16 terrirory;
-    quint32 dataOffset;
-    quint64 lastModified;
-
-    bool isDir() {
-        return flags & Flags::Directory;
-    }
-    bool isZlib() {
-        return flags & Flags::Compressed;
-    }
-    bool isZstd() {
-        return flags & Flags::CompressedZstd;
-    }
-};
-
 struct ReaderData {
     quint32 version;
     quint32 treeOffset;
@@ -44,13 +13,14 @@ struct ReaderData {
     quint32 treeEntrySize;
 };
 
+class ResourceTreeDir;
 class ResourceReader {
 public:
     ResourceReader(QIODevice *device);
 
-    const TreeEntry readTreeEntry(int entryNumber);
-    QString readName(const TreeEntry &entry);
-    quint32 readHash(const TreeEntry &entry);
+    void readTreeDirChildren(ResourceTreeDir *dirNode, int nodeNumber);
+    QString readName(quint32 offset);
+    quint32 readHash(quint32 offset);
     QByteArray readData(quint32 dataOffset);
     ReaderData data();
 

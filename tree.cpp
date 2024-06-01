@@ -1,5 +1,7 @@
 #include "tree.h"
 
+#include <zstd.h>
+
 ResourceTreeNode::ResourceTreeNode(QString name, quint32 nameHash)
     : m_name(name)
     , m_nameHash(nameHash) {}
@@ -53,6 +55,14 @@ QByteArray UncompressedResourceTreeFile::read(QString &error) {
     return m_reader->readData(m_dataOffset);
 }
 
+Compression UncompressedResourceTreeFile::getCompression() {
+    return NoCompression;
+}
+
+QByteArray UncompressedResourceTreeFile::getCompressed() {
+    return m_reader->readData(m_dataOffset);
+}
+
 ZlibResourceTreeFile::ZlibResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset)
     : ResourceTreeFile(name, nameHash)
     , m_reader(reader)
@@ -63,7 +73,40 @@ QByteArray ZlibResourceTreeFile::read(QString &error) {
     return qUncompress(rawData);
 }
 
-QByteArray UnimplementedResourceTreeFile::read(QString &error) {
-    error = "Calling read on unimplemented file. Well, it is unimplemented";
-    return {};
+Compression ZlibResourceTreeFile::getCompression() {
+    return ZlibCompression;
+}
+
+QByteArray ZlibResourceTreeFile::getCompressed() {
+    return m_reader->readData(m_dataOffset);
+}
+
+ZstdResourceTreeFile::ZstdResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset)
+    : ResourceTreeFile(name, nameHash)
+    , m_reader(reader)
+    , m_dataOffset(dataOffset) {}
+
+QByteArray ZstdResourceTreeFile::read(QString &error) {
+    QByteArray rawData = m_reader->readData(m_dataOffset);
+    size_t uncompressedSize = ZSTD_getFrameContentSize(rawData.data(), rawData.size());
+    if (ZSTD_isError(uncompressedSize)) {
+        error = "Cannot get unpacked size";
+        return {};
+    }
+    QByteArray unpackedData;
+    unpackedData.resize(uncompressedSize);
+    size_t size = ZSTD_decompress(unpackedData.data(), uncompressedSize, rawData.data(), rawData.size());
+    if (ZSTD_isError(size)) {
+        error = "Cannot get unpack";
+        return {};
+    }
+    return unpackedData;
+}
+
+Compression ZstdResourceTreeFile::getCompression() {
+    return ZstdCompression;
+}
+
+QByteArray ZstdResourceTreeFile::getCompressed() {
+    return m_reader->readData(m_dataOffset);
 }
