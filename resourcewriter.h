@@ -8,6 +8,7 @@ struct ReaderData;
 class ResourceLibrary;
 class ResourceTreeDir;
 class ResourceTreeNode;
+class ResourceTreeFile;
 class ResourceWriter {
 public:
     ResourceWriter(QIODevice *device);
@@ -22,10 +23,9 @@ private:
 
     void writeHeader();
     quint32 writeData(ResourceTreeDir *dir);
-    quint32 writeName(QString name);
-    quint32 writeNames(ResourceTreeDir *dir);
-    void writeDataTree(ResourceTreeDir *dir);
-    void rewriteHeader();
+    void enumerateEntries(ResourceTreeDir *dir);
+    void writeNames();
+    void writeTree(ResourceTreeDir *dir);
 
     QIODevice *m_device;
     quint32 m_version;
@@ -33,7 +33,11 @@ private:
     quint32 m_dataOffset;
     quint32 m_namesOffset;
     quint32 m_overallFlags;
+    // This for storing offset
     QHash<QString, quint32> m_names;
+    QHash<ResourceTreeFile*, quint32> m_files;
+    // this for writing
+    QStringList m_writeNames;
 };
 
 #endif // RESOURCEWRITER_H

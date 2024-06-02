@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QIODevice>
+#include <QTextStream>
 
 struct ReaderData {
     quint32 version;
@@ -23,6 +24,10 @@ public:
     quint32 readHash(quint32 offset);
     QByteArray readData(quint32 dataOffset);
     ReaderData data();
+
+    void printHeader(QTextStream &out);
+    void printEntries(QTextStream &out);
+    void printNames(QTextStream &out);
 
 private:
     quint8 readNumber();

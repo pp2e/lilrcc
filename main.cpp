@@ -31,15 +31,16 @@ int main(int argc, char *argv[]) {
     parser.addPositionalArgument(QStringLiteral("<file>"), QStringLiteral("Existing rcc file in your filesystem or where you wanna create it"));
     parser.addPositionalArgument(QStringLiteral("<action>"), QStringLiteral("Linux command-like what program should do\n"
                                                                           "header\n"
+                                                                          "entries\n"
+                                                                          "names\n"
                                                                           "ls [path]\n"
                                                                           "cat <file>\n"
                                                                           "tree\n"
                                                                           "allfiles\n"
                                                                           "rm <file>\n"
+                                                                          "mv <source> <dest>\n"
                                                                           "repack\n"));
     parser.addPositionalArgument(QStringLiteral("[<args>]"), QStringLiteral("Arguments for command"));
-    QCommandLineOption output({"o", "output"}, "Output file, used in modifying commands, should differ from input", "outfile");
-    parser.addOption(output);
 
     parser.process(app);
 
@@ -60,11 +61,21 @@ int main(int argc, char *argv[]) {
     }
     file.open(QIODeviceBase::ReadOnly);
     ResourceReader reader(&file);
-    ResourceLibrary lillib(&reader);
     QTextStream out(stdout);
     if (args[1] == "header") {
-        lillib.getHeader(out);
-    } else if (args[1] == "cat") {
+        reader.printHeader(out);
+        return 0;
+    }
+    if (args[1] == "entries") {
+        reader.printEntries(out);
+        return 0;
+    }
+    if (args[1] == "names") {
+        reader.printNames(out);
+        return 0;
+    }
+    ResourceLibrary lillib(&reader);
+    if (args[1] == "cat") {
         ASSERT(args.size() >= 3, "Please specify path to file after cat option")
         QString error_string;
         lillib.getFile(args[2], out, error_string);
@@ -85,15 +96,6 @@ int main(int argc, char *argv[]) {
     } else if (args[1] == "allfiles") {
         lillib.printAllFiles();
     } else if (args[1] == "rm") {
-        QString outFile = parser.value(output);
-        if (outFile.isEmpty()) {
-            qCritical() << "Please specify output path via -o option\n";
-            return 1;
-        }
-        if (QFileInfo(outFile).absoluteFilePath() == QFileInfo(inFile).absoluteFilePath()) {
-            qCritical() << "You should not write to input file";
-            return 1;
-        }
         if (args.size() < 3) {
             qCritical() << "Please specify path to file after rm option\n";
             return 1;
@@ -104,25 +106,27 @@ int main(int argc, char *argv[]) {
             qCritical() << error_string << "\n";
             return 1;
         }
-        QFile outDevice(outFile);
-        outDevice.open(QIODeviceBase::WriteOnly);
-        ResourceWriter writer(&outDevice);
-        lillib.printTree(out);
+        ResourceWriter writer(out.device());
+        lillib.save(&writer);
+    } else if (args[1] == "mv") {
+        if (args.size() < 3) {
+            qCritical() << "Please specify path to source file after mv option\n";
+            return 1;
+        }
+        if (args.size() < 4) {
+            qCritical() << "Please specify path to destination file after mv option\n";
+            return 1;
+        }
+        QString error_string;
+        lillib.mvFile(args[2], args[3], error_string);
+        if (!error_string.isEmpty()) {
+            qCritical() << error_string << "\n";
+            return 1;
+        }
+        ResourceWriter writer(out.device());
         lillib.save(&writer);
     } else if (args[1] == "repack") {
-        QString outFile = parser.value(output);
-        if (outFile.isEmpty()) {
-            qCritical() << "Please specify output path via -o option\n";
-            return 1;
-        }
-        if (QFileInfo(outFile).absoluteFilePath() == QFileInfo(inFile).absoluteFilePath()) {
-            qCritical() << "You should not write to input file";
-            return 1;
-        }
-        QFile outDevice(outFile);
-        outDevice.open(QIODeviceBase::WriteOnly);
-        ResourceWriter writer(&outDevice);
-        lillib.printTree(out);
+        ResourceWriter writer(out.device());
         lillib.save(&writer);
     } else {
         qCritical() << "Unknown action specified, please select smarter";

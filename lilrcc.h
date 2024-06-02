@@ -12,12 +12,12 @@ class ResourceLibrary {
 public:
     ResourceLibrary(ResourceReader *reader);
 
-    void getHeader(QTextStream &out);
     void printTree(QTextStream &out);
     bool ls(QString path, QString &error);
     bool getFile(QString path, QTextStream &out, QString &error);
     void printAllFiles();
     bool rmFile(QString path, QString &error);
+    bool mvFile(QString source, QString dest, QString &error);
     void save(ResourceWriter *writer);
 
 private:

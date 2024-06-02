@@ -31,11 +31,12 @@ protected:
 // Directory
 class ResourceTreeDir : public ResourceTreeNode {
 public:
-    using ResourceTreeNode::ResourceTreeNode;
+    ResourceTreeDir(QString name, quint32 nameHash);
     ~ResourceTreeDir();
 
     bool isDir() override;
     bool appendChild(ResourceTreeNode *node);
+    bool insertChild(ResourceTreeNode *node);
     bool removeChild(ResourceTreeNode *node);
     QList<ResourceTreeNode*> children();
 private:
@@ -51,17 +52,21 @@ enum Compression {
 
 class ResourceTreeFile : public ResourceTreeNode {
 public:
-    ResourceTreeFile(QString name, quint32 nameHash);
+    ResourceTreeFile(QString name, quint32 nameHash, quint32 dataSize);
     bool isDir() override;
     virtual QByteArray read(QString &error)=0;
     virtual Compression getCompression()=0;
     virtual QByteArray getCompressed()=0;
+    quint32 dataSize();
+
+protected:
+    quint32 m_dataSize;
 };
 
 // Uncompressed file from rcc
 class UncompressedResourceTreeFile : public ResourceTreeFile {
 public:
-    UncompressedResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset);
+    UncompressedResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset, quint32 dataSize);
     QByteArray read(QString &error);
     Compression getCompression();
     QByteArray getCompressed();
@@ -73,7 +78,7 @@ protected:
 // Zlib compressed file from rcc
 class ZlibResourceTreeFile : public ResourceTreeFile {
 public:
-    ZlibResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset);
+    ZlibResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset, quint32 dataSize);
     QByteArray read(QString &error);
     Compression getCompression();
     QByteArray getCompressed();
@@ -85,13 +90,24 @@ protected:
 // Zstd compressed file from rcc
 class ZstdResourceTreeFile : public ResourceTreeFile {
 public:
-    ZstdResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset);
+    ZstdResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset, quint32 dataSize);
     QByteArray read(QString &error);
     Compression getCompression();
     QByteArray getCompressed();
 protected:
     ResourceReader *m_reader;
     quint32 m_dataOffset;
+};
+
+// QByteArray file
+class QByteArrayResourceTreeFile : public ResourceTreeFile {
+public:
+    QByteArrayResourceTreeFile(QString name, quint32 nameHash, QByteArray data);
+    QByteArray read(QString &error);
+    Compression getCompression();
+    QByteArray getCompressed();
+protected:
+    QByteArray m_data;
 };
 
 #endif // TREE_H

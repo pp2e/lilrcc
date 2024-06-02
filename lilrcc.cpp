@@ -10,15 +10,6 @@ ResourceLibrary::ResourceLibrary(ResourceReader *reader)
     m_readerData = reader->data();
 }
 
-void ResourceLibrary::getHeader(QTextStream &out) {
-    out << "Version: " << m_readerData.version << "\n";
-    out << "Tree: " << m_readerData.treeOffset << "\n";
-    out << "Data: " << m_readerData.dataOffset << "\n";
-    out << "Names: " << m_readerData.namesOffset << "\n";
-    if (m_readerData.version >= 3)
-        out << "OverallFlags: " << m_readerData.overallFlags << "\n";
-}
-
 void ResourceLibrary::printTree(QTextStream &out) {
     out << m_root.name() << "\n";
     printDirTree(&m_root, out);
@@ -63,7 +54,8 @@ void ResourceLibrary::printAllFiles() {
             ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
             nodes.append(dir->children());
         } else {
-            qDebug() << node->name();
+            ResourceTreeFile *file = static_cast<ResourceTreeFile*>(node);
+            qDebug() << file->name() << file->dataSize();
         }
     }
 }
@@ -79,9 +71,45 @@ bool ResourceLibrary::rmFile(QString path, QString &error) {
     }
     ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
     ResourceTreeNode *child = binSearchNode(dir->children(), qt_hash(nodeName));
+    delete child;
     if (!dir->removeChild(child))
         // dir always have this child, or we would'nt get it
         Q_UNREACHABLE();
+    return true;
+}
+
+bool ResourceLibrary::mvFile(QString source, QString dest, QString &error) {
+    QStringList sourceSegments = parsePath(source);
+    QString sourceName = sourceSegments.takeLast();
+    ResourceTreeNode *node = getNode(sourceSegments, error);
+    if (!error.isEmpty()) {
+        error = "source: " + error;
+        return false;
+    }
+    if (!node->isDir()) {
+        error = "Got file instead of dir";
+        return false;
+    }
+    ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
+    ResourceTreeNode *child = binSearchNode(dir->children(), qt_hash(sourceName));
+    if (!child) {
+        error = "Source entry not found";
+        return false;
+    }
+    dir->removeChild(child);
+
+    QStringList destSegments = parsePath(dest);
+    ResourceTreeNode *destNode = getNode(destSegments, error);
+    if (!error.isEmpty()) {
+        error = "target: " + error;
+        return false;
+    }
+    if (!destNode->isDir()) {
+        error = "Got file instead of dir";
+        return false;
+    }
+    ResourceTreeDir *destDir = static_cast<ResourceTreeDir*>(destNode);
+    destDir->insertChild(child);
     return true;
 }
 
