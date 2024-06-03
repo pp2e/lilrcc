@@ -1,7 +1,4 @@
-// Copyright (C) 2018 The Qt Company Ltd.
-// Copyright (C) 2018 Intel Corporation.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
-
+// This code is part of lilrcc project -> https://gitlab.com/pp2e/lilrcc
 #include "lilrcc.h"
 #include "resourcereader.h"
 #include "resourcewriter.h"
@@ -36,9 +33,9 @@ int main(int argc, char *argv[]) {
                                                                           "ls [path]\n"
                                                                           "cat <file>\n"
                                                                           "tree\n"
-                                                                          "allfiles\n"
                                                                           "rm <file>\n"
                                                                           "mv <source> <dest>\n"
+                                                                          "add <source> <dest>\n"
                                                                           "repack\n"));
     parser.addPositionalArgument(QStringLiteral("[<args>]"), QStringLiteral("Arguments for command"));
 
@@ -93,8 +90,6 @@ int main(int argc, char *argv[]) {
         }
     } else if (args[1] == "tree") {
         lillib.printTree(out);
-    } else if (args[1] == "allfiles") {
-        lillib.printAllFiles();
     } else if (args[1] == "rm") {
         if (args.size() < 3) {
             qCritical() << "Please specify path to file after rm option\n";
@@ -110,15 +105,41 @@ int main(int argc, char *argv[]) {
         lillib.save(&writer);
     } else if (args[1] == "mv") {
         if (args.size() < 3) {
-            qCritical() << "Please specify path to source file after mv option\n";
+            qCritical() << "Please specify path to source entry after mv option\n";
             return 1;
         }
         if (args.size() < 4) {
-            qCritical() << "Please specify path to destination file after mv option\n";
+            qCritical() << "Please specify path to destination directory after mv option\n";
             return 1;
         }
         QString error_string;
         lillib.mvFile(args[2], args[3], error_string);
+        if (!error_string.isEmpty()) {
+            qCritical() << error_string << "\n";
+            return 1;
+        }
+        ResourceWriter writer(out.device());
+        lillib.save(&writer);
+    } else if (args[1] == "add") {
+        if (args.size() < 3) {
+            qCritical() << "Please specify path to source file after add option\n";
+            return 1;
+        }
+        QFile addFile(args[2]);
+        addFile.open(QIODeviceBase::ReadOnly);
+        if (!addFile.exists()) {
+            qCritical() << "File does not exist";
+            return 1;
+        }
+        QString addFileName = args[2];
+        addFileName = addFileName.mid(addFileName.lastIndexOf("/")+1);
+
+        if (args.size() < 4) {
+            qCritical() << "Please specify path to destination directory after add option\n";
+            return 1;
+        }
+        QString error_string;
+        lillib.addFile(addFile.readAll(), addFileName, args[3], error_string);
         if (!error_string.isEmpty()) {
             qCritical() << error_string << "\n";
             return 1;

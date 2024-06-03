@@ -162,7 +162,7 @@ QByteArray ZstdResourceTreeFile::getCompressed() {
 }
 
 QByteArrayResourceTreeFile::QByteArrayResourceTreeFile(QString name, quint32 nameHash, QByteArray data)
-    : ResourceTreeFile(name, nameHash, data.size())
+    : ResourceTreeFile(name, nameHash, 4+data.size())
     , m_data(data) {}
 
 QByteArray QByteArrayResourceTreeFile::read(QString &error) {

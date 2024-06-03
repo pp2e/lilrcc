@@ -46,20 +46,6 @@ bool ResourceLibrary::getFile(QString path, QTextStream &out, QString &error) {
     return true;
 }
 
-void ResourceLibrary::printAllFiles() {
-    QList<ResourceTreeNode*> nodes = {&m_root};
-    while (!nodes.isEmpty()) {
-        ResourceTreeNode *node = nodes.takeFirst();
-        if (node->isDir()) {
-            ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
-            nodes.append(dir->children());
-        } else {
-            ResourceTreeFile *file = static_cast<ResourceTreeFile*>(node);
-            qDebug() << file->name() << file->dataSize();
-        }
-    }
-}
-
 bool ResourceLibrary::rmFile(QString path, QString &error) {
     QStringList pathSegments = parsePath(path);
     QString nodeName = pathSegments.takeLast();
@@ -72,9 +58,7 @@ bool ResourceLibrary::rmFile(QString path, QString &error) {
     ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
     ResourceTreeNode *child = binSearchNode(dir->children(), qt_hash(nodeName));
     delete child;
-    if (!dir->removeChild(child))
-        // dir always have this child, or we would'nt get it
-        Q_UNREACHABLE();
+    dir->removeChild(child);
     return true;
 }
 
@@ -102,14 +86,36 @@ bool ResourceLibrary::mvFile(QString source, QString dest, QString &error) {
     ResourceTreeNode *destNode = getNode(destSegments, error);
     if (!error.isEmpty()) {
         error = "target: " + error;
+        delete child;
         return false;
     }
     if (!destNode->isDir()) {
         error = "Got file instead of dir";
+        delete child;
         return false;
     }
     ResourceTreeDir *destDir = static_cast<ResourceTreeDir*>(destNode);
     destDir->insertChild(child);
+    return true;
+}
+
+bool ResourceLibrary::addFile(QByteArray data, QString name, QString dest, QString &error) {
+    QByteArrayResourceTreeFile *file = new QByteArrayResourceTreeFile(name, qt_hash(name), data);
+
+    QStringList destSegments = parsePath(dest);
+    ResourceTreeNode *destNode = getNode(destSegments, error);
+    if (!error.isEmpty()) {
+        error = "target: " + error;
+        delete file;
+        return false;
+    }
+    if (!destNode->isDir()) {
+        error = "Got file instead of dir";
+        delete file;
+        return false;
+    }
+    ResourceTreeDir *destDir = static_cast<ResourceTreeDir*>(destNode);
+    destDir->insertChild(file);
     return true;
 }
 
@@ -168,6 +174,7 @@ ResourceTreeNode *ResourceLibrary::binSearchNode(QList<ResourceTreeNode*> childr
     }
     return node;
 }
+
 ResourceTreeNode *ResourceLibrary::getNode(QStringList path, QString &error) {
     ResourceTreeNode *node = &m_root;
     for (QString &segment : path) {
