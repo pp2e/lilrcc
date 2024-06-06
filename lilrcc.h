@@ -14,7 +14,7 @@ public:
 
     void printTree(QTextStream &out);
     bool ls(QString path, QString &error);
-    bool getFile(QString path, QTextStream &out, QString &error);
+    QByteArray getFile(QString path, QTextStream &out, QString &error);
     bool rmFile(QString path, QString &error);
     bool mvFile(QString source, QString dest, QString &error);
     bool addFile(QByteArray data, QString name, QString dest, QString &error);

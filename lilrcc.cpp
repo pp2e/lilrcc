@@ -30,20 +30,19 @@ bool ResourceLibrary::ls(QString path, QString &error) {
     return true;
 }
 
-bool ResourceLibrary::getFile(QString path, QTextStream &out, QString &error) {
+QByteArray ResourceLibrary::getFile(QString path, QTextStream &out, QString &error) {
     QStringList pathSegments = parsePath(path);
     ResourceTreeNode *node = getNode(pathSegments, error);
-    if (!error.isEmpty()) return false;
+    if (!error.isEmpty()) return {};
     if (node->isDir()) {
         qWarning() << "File is not file (directory)";
-        return false;
+        return {};
     }
     ResourceTreeFile *file = static_cast<ResourceTreeFile*>(node);
     QByteArray data = file->read(error);
-    if (!error.isEmpty()) return false;
+    if (!error.isEmpty()) return {};
 
-    out << data;
-    return true;
+    return data;
 }
 
 bool ResourceLibrary::rmFile(QString path, QString &error) {
