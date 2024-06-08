@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core)
 find_package(zstd)
 
-add_library(lilrcc SHARED
+add_library(lilrcc STATIC
+    error.h error.cpp
     lilrcc.h lilrcc.cpp
     resourcereader.h resourcereader.cpp
     tree.h tree.cpp

@@ -7,7 +7,6 @@ ResourceLibrary::ResourceLibrary(ResourceReader *reader)
     : m_root(":", 0)
 {
     reader->readTreeDirChildren(&m_root, 0);
-    m_readerData = reader->data();
 }
 
 void ResourceLibrary::printTree(QTextStream &out) {
@@ -15,12 +14,12 @@ void ResourceLibrary::printTree(QTextStream &out) {
     printDirTree(&m_root, out);
 }
 
-bool ResourceLibrary::ls(QString path, QString &error) {
+bool ResourceLibrary::ls(QString path, Lilrcc::Error &error) {
     QStringList pathSegments = parsePath(path);
     ResourceTreeNode *node = getNode(pathSegments, error);
-    if (!error.isEmpty()) return false;
+    if (error != Lilrcc::NoError) return false;
     if (!node->isDir()) {
-        error = "Tree entry is file";
+        error = Lilrcc::GotFileInsteadOfDir;
         return false;
     }
     ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
@@ -30,28 +29,28 @@ bool ResourceLibrary::ls(QString path, QString &error) {
     return true;
 }
 
-QByteArray ResourceLibrary::getFile(QString path, QString &error) {
+QByteArray ResourceLibrary::getFile(QString path, Lilrcc::Error &error) {
     QStringList pathSegments = parsePath(path);
     ResourceTreeNode *node = getNode(pathSegments, error);
-    if (!error.isEmpty()) return {};
+    if (error != Lilrcc::NoError) return {};
     if (node->isDir()) {
-        qWarning() << "File is not file (directory)";
+        error = Lilrcc::GotFileInsteadOfDir;
         return {};
     }
     ResourceTreeFile *file = static_cast<ResourceTreeFile*>(node);
     QByteArray data = file->read(error);
-    if (!error.isEmpty()) return {};
+    if (error != Lilrcc::NoError) return {};
 
     return data;
 }
 
-bool ResourceLibrary::rmFile(QString path, QString &error) {
+bool ResourceLibrary::rmFile(QString path, Lilrcc::Error &error) {
     QStringList pathSegments = parsePath(path);
     QString nodeName = pathSegments.takeLast();
     ResourceTreeNode *node = getNode(pathSegments, error);
-    if (!error.isEmpty()) return false;
+    if (error != Lilrcc::NoError) return false;
     if (!node->isDir()) {
-        error = "Got file instead of dir";
+        error = Lilrcc::GotFileInsteadOfDir;
         return false;
     }
     ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
@@ -61,35 +60,31 @@ bool ResourceLibrary::rmFile(QString path, QString &error) {
     return true;
 }
 
-bool ResourceLibrary::mvFile(QString source, QString dest, QString &error) {
+bool ResourceLibrary::mvFile(QString source, QString dest, Lilrcc::Error &error) {
     QStringList sourceSegments = parsePath(source);
     QString sourceName = sourceSegments.takeLast();
     ResourceTreeNode *node = getNode(sourceSegments, error);
-    if (!error.isEmpty()) {
-        error = "source: " + error;
-        return false;
-    }
+    if (error != Lilrcc::NoError) return false;
     if (!node->isDir()) {
-        error = "Got file instead of dir";
+        error = Lilrcc::GotFileInsteadOfDir;
         return false;
     }
     ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
     ResourceTreeNode *child = binSearchNode(dir->children(), qt_hash(sourceName));
     if (!child) {
-        error = "Source entry not found";
+        error = Lilrcc::EntryNotFound;
         return false;
     }
     dir->removeChild(child);
 
     QStringList destSegments = parsePath(dest);
     ResourceTreeNode *destNode = getNode(destSegments, error);
-    if (!error.isEmpty()) {
-        error = "target: " + error;
+    if (error != Lilrcc::NoError) {
         delete child;
         return false;
     }
     if (!destNode->isDir()) {
-        error = "Got file instead of dir";
+        error = Lilrcc::GotFileInsteadOfDir;
         delete child;
         return false;
     }
@@ -98,18 +93,17 @@ bool ResourceLibrary::mvFile(QString source, QString dest, QString &error) {
     return true;
 }
 
-bool ResourceLibrary::addFile(QByteArray data, QString name, QString dest, QString &error) {
+bool ResourceLibrary::addFile(QByteArray data, QString name, QString dest, Lilrcc::Error &error) {
     QByteArrayResourceTreeFile *file = new QByteArrayResourceTreeFile(name, qt_hash(name), data);
 
     QStringList destSegments = parsePath(dest);
     ResourceTreeNode *destNode = getNode(destSegments, error);
-    if (!error.isEmpty()) {
-        error = "target: " + error;
+    if (error != Lilrcc::NoError) {
         delete file;
         return false;
     }
     if (!destNode->isDir()) {
-        error = "Got file instead of dir";
+        error = Lilrcc::GotFileInsteadOfDir;
         delete file;
         return false;
     }
@@ -119,7 +113,7 @@ bool ResourceLibrary::addFile(QByteArray data, QString name, QString dest, QStri
 }
 
 void ResourceLibrary::save(ResourceWriter *writer) {
-    writer->write(&m_root, m_readerData.version);
+    writer->write(&m_root, 3);
 }
 
 QString tab = "";
@@ -174,17 +168,17 @@ ResourceTreeNode *ResourceLibrary::binSearchNode(QList<ResourceTreeNode*> childr
     return node;
 }
 
-ResourceTreeNode *ResourceLibrary::getNode(QStringList path, QString &error) {
+ResourceTreeNode *ResourceLibrary::getNode(QStringList path, Lilrcc::Error &error) {
     ResourceTreeNode *node = &m_root;
     for (QString &segment : path) {
         if (!node->isDir()) {
-            error = "Got file instead of dir";
+            error = Lilrcc::GotFileInsteadOfDir;
             return nullptr;
         }
         ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
         node = binSearchNode(dir->children(), qt_hash(segment));
         if (!node) {
-            error = "Entry not found";
+            error = Lilrcc::EntryNotFound;
             return nullptr;
         }
     }

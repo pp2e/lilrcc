@@ -1,29 +1,23 @@
 #ifndef LILRCCREADER_H
 #define LILRCCREADER_H
 
+#include "error.h"
+
 #include <QString>
 #include <QIODevice>
 #include <QTextStream>
-
-struct ReaderData {
-    quint32 version;
-    quint32 treeOffset;
-    quint32 dataOffset;
-    quint32 namesOffset;
-    quint32 overallFlags;
-    quint32 treeEntrySize;
-};
 
 class ResourceTreeDir;
 class ResourceReader {
 public:
     ResourceReader(QIODevice *device);
 
+    Lilrcc::Error error();
+
     void readTreeDirChildren(ResourceTreeDir *dirNode, int nodeNumber);
     QString readName(quint32 offset);
     quint32 readHash(quint32 offset);
     QByteArray readData(quint32 dataOffset);
-    ReaderData data();
 
     void printHeader(QTextStream &out);
     void printEntries(QTextStream &out);
@@ -36,7 +30,15 @@ private:
     quint64 readNumber8();
 
 private:
-    ReaderData m_readerData;
+    Lilrcc::Error m_error;
+
+    quint32 m_version;
+    quint32 m_treeOffset;
+    quint32 m_dataOffset;
+    quint32 m_namesOffset;
+    quint32 m_overallFlags;
+    quint32 m_treeEntrySize;
+
     QIODevice *m_device;
 };
 

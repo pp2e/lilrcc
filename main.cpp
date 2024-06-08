@@ -74,18 +74,18 @@ int main(int argc, char *argv[]) {
     ResourceLibrary lillib(&reader);
     if (args[1] == "cat") {
         ASSERT(args.size() >= 3, "Please specify path to file after cat option")
-        QString error_string;
-        out << lillib.getFile(args[2], error_string);
-        if (!error_string.isEmpty()) {
-            qCritical() << error_string << "\n";
+        Lilrcc::Error error;
+        out << lillib.getFile(args[2], error);
+        if (error != Lilrcc::NoError) {
+            printError(error);
             return 1;
         }
     } else if (args[1] == "ls") {
         QString path = args.size() < 3 ? "/" : args[2];
-        QString error_string;
-        lillib.ls(path, error_string);
-        if (!error_string.isEmpty()) {
-            qCritical() << error_string << "\n";
+        Lilrcc::Error error;
+        lillib.ls(path, error);
+        if (error != Lilrcc::NoError) {
+            printError(error);
             return 1;
         }
     } else if (args[1] == "tree") {
@@ -95,10 +95,10 @@ int main(int argc, char *argv[]) {
             qCritical() << "Please specify path to file after rm option\n";
             return 1;
         }
-        QString error_string;
-        lillib.rmFile(args[2], error_string);
-        if (!error_string.isEmpty()) {
-            qCritical() << error_string << "\n";
+        Lilrcc::Error error;
+        lillib.rmFile(args[2], error);
+        if (error != Lilrcc::NoError) {
+            printError(error);
             return 1;
         }
         ResourceWriter writer(out.device());
@@ -112,10 +112,10 @@ int main(int argc, char *argv[]) {
             qCritical() << "Please specify path to destination directory after mv option\n";
             return 1;
         }
-        QString error_string;
-        lillib.mvFile(args[2], args[3], error_string);
-        if (!error_string.isEmpty()) {
-            qCritical() << error_string << "\n";
+        Lilrcc::Error error;
+        lillib.mvFile(args[2], args[3], error);
+        if (error != Lilrcc::NoError) {
+            printError(error);
             return 1;
         }
         ResourceWriter writer(out.device());
@@ -138,10 +138,10 @@ int main(int argc, char *argv[]) {
             qCritical() << "Please specify path to destination directory after add option\n";
             return 1;
         }
-        QString error_string;
-        lillib.addFile(addFile.readAll(), addFileName, args[3], error_string);
-        if (!error_string.isEmpty()) {
-            qCritical() << error_string << "\n";
+        Lilrcc::Error error;
+        lillib.addFile(addFile.readAll(), addFileName, args[3], error);
+        if (error != Lilrcc::NoError) {
+            printError(error);
             return 1;
         }
         ResourceWriter writer(out.device());

@@ -1,7 +1,7 @@
 #include "tree.h"
+#include "resourcereader.h"
 
 #include <zstd.h>
-#include <QDebug>
 
 // uses binary search for fast finding child node with specified hash
 int binSearchNode(QList<ResourceTreeNode*> children, quint32 searchHash, bool &replace) {
@@ -101,7 +101,7 @@ UncompressedResourceTreeFile::UncompressedResourceTreeFile(QString name, quint32
     , m_reader(reader)
     , m_dataOffset(dataOffset) {}
 
-QByteArray UncompressedResourceTreeFile::read(QString &error) {
+QByteArray UncompressedResourceTreeFile::read(Lilrcc::Error &error) {
     return m_reader->readData(m_dataOffset);
 }
 
@@ -118,7 +118,7 @@ ZlibResourceTreeFile::ZlibResourceTreeFile(QString name, quint32 nameHash, Resou
     , m_reader(reader)
     , m_dataOffset(dataOffset) {}
 
-QByteArray ZlibResourceTreeFile::read(QString &error) {
+QByteArray ZlibResourceTreeFile::read(Lilrcc::Error &error) {
     QByteArray rawData = m_reader->readData(m_dataOffset);
     return qUncompress(rawData);
 }
@@ -136,18 +136,18 @@ ZstdResourceTreeFile::ZstdResourceTreeFile(QString name, quint32 nameHash, Resou
     , m_reader(reader)
     , m_dataOffset(dataOffset) {}
 
-QByteArray ZstdResourceTreeFile::read(QString &error) {
+QByteArray ZstdResourceTreeFile::read(Lilrcc::Error &error) {
     QByteArray rawData = m_reader->readData(m_dataOffset);
     size_t uncompressedSize = ZSTD_getFrameContentSize(rawData.data(), rawData.size());
     if (ZSTD_isError(uncompressedSize)) {
-        error = "Cannot get unpacked size";
+        error = Lilrcc::CannotUncompress;
         return {};
     }
     QByteArray unpackedData;
     unpackedData.resize(uncompressedSize);
     size_t size = ZSTD_decompress(unpackedData.data(), uncompressedSize, rawData.data(), rawData.size());
     if (ZSTD_isError(size)) {
-        error = "Cannot get unpack";
+        error = Lilrcc::CannotUncompress;
         return {};
     }
     return unpackedData;
@@ -165,7 +165,7 @@ QByteArrayResourceTreeFile::QByteArrayResourceTreeFile(QString name, quint32 nam
     : ResourceTreeFile(name, nameHash, 4+data.size())
     , m_data(data) {}
 
-QByteArray QByteArrayResourceTreeFile::read(QString &error) {
+QByteArray QByteArrayResourceTreeFile::read(Lilrcc::Error &error) {
     return m_data;
 }
 

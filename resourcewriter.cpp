@@ -1,8 +1,6 @@
 #include "resourcewriter.h"
 #include "tree.h"
 
-#include <QDebug>
-
 ResourceWriter::ResourceWriter(QIODevice *device) {
     m_device = device;
 }
@@ -73,7 +71,6 @@ quint32 ResourceWriter::writeData(ResourceTreeDir *dir) {
                 pending << static_cast<ResourceTreeDir*>(child);
             else {
                 ResourceTreeFile *file = static_cast<ResourceTreeFile*>(child);
-                qDebug() << "Wrote" << file->name() << m_dataOffset + dataOffset;
                 QByteArray data = file->getCompressed();
                 writeNumber4(data.size());
                 m_device->write(data);

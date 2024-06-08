@@ -4,7 +4,6 @@
 #include <QIODevice>
 #include <QHash>
 
-struct ReaderData;
 class ResourceLibrary;
 class ResourceTreeDir;
 class ResourceTreeNode;

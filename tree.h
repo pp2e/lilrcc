@@ -1,7 +1,7 @@
 #ifndef TREE_H
 #define TREE_H
 
-#include "resourcereader.h"
+#include "error.h"
 
 #include <QString>
 #include <QList>
@@ -54,7 +54,7 @@ class ResourceTreeFile : public ResourceTreeNode {
 public:
     ResourceTreeFile(QString name, quint32 nameHash, quint32 dataSize);
     bool isDir() override;
-    virtual QByteArray read(QString &error)=0;
+    virtual QByteArray read(Lilrcc::Error &error)=0;
     virtual Compression getCompression()=0;
     virtual QByteArray getCompressed()=0;
     quint32 dataSize();
@@ -63,11 +63,13 @@ protected:
     quint32 m_dataSize;
 };
 
+class ResourceReader;
+
 // Uncompressed file from rcc
 class UncompressedResourceTreeFile : public ResourceTreeFile {
 public:
     UncompressedResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset, quint32 dataSize);
-    QByteArray read(QString &error);
+    QByteArray read(Lilrcc::Error &error);
     Compression getCompression();
     QByteArray getCompressed();
 protected:
@@ -79,7 +81,7 @@ protected:
 class ZlibResourceTreeFile : public ResourceTreeFile {
 public:
     ZlibResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset, quint32 dataSize);
-    QByteArray read(QString &error);
+    QByteArray read(Lilrcc::Error &error);
     Compression getCompression();
     QByteArray getCompressed();
 protected:
@@ -91,7 +93,7 @@ protected:
 class ZstdResourceTreeFile : public ResourceTreeFile {
 public:
     ZstdResourceTreeFile(QString name, quint32 nameHash, ResourceReader *reader, quint32 dataOffset, quint32 dataSize);
-    QByteArray read(QString &error);
+    QByteArray read(Lilrcc::Error &error);
     Compression getCompression();
     QByteArray getCompressed();
 protected:
@@ -103,7 +105,7 @@ protected:
 class QByteArrayResourceTreeFile : public ResourceTreeFile {
 public:
     QByteArrayResourceTreeFile(QString name, quint32 nameHash, QByteArray data);
-    QByteArray read(QString &error);
+    QByteArray read(Lilrcc::Error &error);
     Compression getCompression();
     QByteArray getCompressed();
 protected:

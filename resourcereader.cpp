@@ -1,30 +1,32 @@
 #include "resourcereader.h"
 #include "tree.h"
 
-#include <QDebug>
-
 ResourceReader::ResourceReader(QIODevice *device) {
     m_device = device;
 
     if (m_device->read(4) != "qres") {
-        qWarning() << "File is not rcc";
+        m_error = Lilrcc::InputFileIsNotRcc;
         return;
     }
 
-    m_readerData.version = readNumber4();
-    m_readerData.treeOffset = readNumber4();
-    m_readerData.dataOffset = readNumber4();
-    m_readerData.namesOffset = readNumber4();
+    m_version = readNumber4();
+    m_treeOffset = readNumber4();
+    m_dataOffset = readNumber4();
+    m_namesOffset = readNumber4();
 
-    if (m_readerData.version >= 3) {
-        m_readerData.overallFlags = readNumber4();
+    if (m_version >= 3) {
+        m_overallFlags = readNumber4();
     }
 
     // Calculate tree entry size
-    m_readerData.treeEntrySize = 14;
-    if (m_readerData.version >= 2)
+    m_treeEntrySize = 14;
+    if (m_version >= 2)
         // Since version 2 rcc also have last modification date
-        m_readerData.treeEntrySize += 8;
+        m_treeEntrySize += 8;
+}
+
+Lilrcc::Error ResourceReader::error() {
+    return m_error;
 }
 
 quint8 ResourceReader::readNumber() {
@@ -57,12 +59,12 @@ quint64 ResourceReader::readNumber8() {
 }
 
 void ResourceReader::readTreeDirChildren(ResourceTreeDir *dirNode, int nodeNumber) {
-    m_device->seek(m_readerData.treeOffset + nodeNumber*m_readerData.treeEntrySize+6);
+    m_device->seek(m_treeOffset + nodeNumber*m_treeEntrySize+6);
     quint32 childrenCount = readNumber4();
     quint32 firstChild = readNumber4();
 
     for (int i = 0; i < childrenCount; i++) {
-        m_device->seek(m_readerData.treeOffset + (firstChild+i)*m_readerData.treeEntrySize);
+        m_device->seek(m_treeOffset + (firstChild+i)*m_treeEntrySize);
         quint32 nameOffset = readNumber4();
         quint16 flags = readNumber2();
 
@@ -76,9 +78,9 @@ void ResourceReader::readTreeDirChildren(ResourceTreeDir *dirNode, int nodeNumbe
         }
 
         // file, not dir
-        m_device->seek(m_readerData.treeOffset + (firstChild+i)*m_readerData.treeEntrySize+10);
+        m_device->seek(m_treeOffset + (firstChild+i)*m_treeEntrySize+10);
         quint32 dataOffset = readNumber4();
-        m_device->seek(m_readerData.dataOffset + dataOffset);
+        m_device->seek(m_dataOffset + dataOffset);
         quint32 dataSize = 4+readNumber4();
         if (flags & Flags::Compressed) {
             ResourceTreeFile *file = new ZlibResourceTreeFile(name, nameHash, this, dataOffset, dataSize);
@@ -94,7 +96,7 @@ void ResourceReader::readTreeDirChildren(ResourceTreeDir *dirNode, int nodeNumbe
 }
 
 QString ResourceReader::readName(quint32 offset) {
-    m_device->seek(m_readerData.namesOffset + offset);
+    m_device->seek(m_namesOffset + offset);
     quint16 nameLength = readNumber2();
     // Name hash, we dont need here
     m_device->skip(4);
@@ -106,31 +108,27 @@ QString ResourceReader::readName(quint32 offset) {
 }
 
 quint32 ResourceReader::readHash(quint32 offset) {
-    m_device->seek(m_readerData.namesOffset + offset + 2);
+    m_device->seek(m_namesOffset + offset + 2);
     return readNumber4();
 }
 
 QByteArray ResourceReader::readData(quint32 dataOffset) {
-    m_device->seek(m_readerData.dataOffset + dataOffset);
+    m_device->seek(m_dataOffset + dataOffset);
     quint32 dataLength = readNumber4();
     return m_device->read(dataLength);
 }
 
-ReaderData ResourceReader::data() {
-    return m_readerData;
-}
-
 void ResourceReader::printHeader(QTextStream &out) {
-    out << "Version: " << m_readerData.version << "\n";
-    out << "Tree: " << m_readerData.treeOffset << "\n";
-    out << "Data: " << m_readerData.dataOffset << "\n";
-    out << "Names: " << m_readerData.namesOffset << "\n";
-    if (m_readerData.version >= 3)
-        out << "OverallFlags: " << m_readerData.overallFlags << "\n";
+    out << "Version: " << m_version << "\n";
+    out << "Tree: " << m_treeOffset << "\n";
+    out << "Data: " << m_dataOffset << "\n";
+    out << "Names: " << m_namesOffset << "\n";
+    if (m_version >= 3)
+        out << "OverallFlags: " << m_overallFlags << "\n";
 }
 
 void ResourceReader::printEntries(QTextStream &out) {
-    m_device->seek(m_readerData.treeOffset);
+    m_device->seek(m_treeOffset);
     int pending = 1;
     while (pending > 0) {
         pending--;
@@ -147,15 +145,15 @@ void ResourceReader::printEntries(QTextStream &out) {
             out << " Territory: " << readNumber2();
             out << " Data: " << readNumber4();
         }
-        if (m_readerData.version >= 2)
+        if (m_version >= 2)
             readNumber8();
         out << "\n";
     }
 }
 
 void ResourceReader::printNames(QTextStream &out) {
-    quint32 namesSize = m_readerData.treeOffset - m_readerData.namesOffset;
-    m_device->seek(m_readerData.namesOffset);
+    quint32 namesSize = m_treeOffset - m_namesOffset;
+    m_device->seek(m_namesOffset);
     quint32 offset = 0;
     while (offset < namesSize) {
         quint16 nameSize = readNumber2();

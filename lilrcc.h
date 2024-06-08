@@ -1,23 +1,23 @@
 #ifndef LILRCC_H
 #define LILRCC_H
 
-#include <QTextStream>
-#include <QString>
-
 #include "resourcereader.h"
 #include "resourcewriter.h"
 #include "tree.h"
+
+#include <QTextStream>
+#include <QString>
 
 class ResourceLibrary {
 public:
     ResourceLibrary(ResourceReader *reader);
 
     void printTree(QTextStream &out);
-    bool ls(QString path, QString &error);
-    QByteArray getFile(QString path, QString &error);
-    bool rmFile(QString path, QString &error);
-    bool mvFile(QString source, QString dest, QString &error);
-    bool addFile(QByteArray data, QString name, QString dest, QString &error);
+    bool ls(QString path, Lilrcc::Error &error);
+    QByteArray getFile(QString path, Lilrcc::Error &error);
+    bool rmFile(QString path, Lilrcc::Error &error);
+    bool mvFile(QString source, QString dest, Lilrcc::Error &error);
+    bool addFile(QByteArray data, QString name, QString dest, Lilrcc::Error &error);
     void save(ResourceWriter *writer);
 
 private:
@@ -26,9 +26,7 @@ private:
     static QStringList parsePath(QString path);
 
     ResourceTreeNode *binSearchNode(QList<ResourceTreeNode*> children, quint32 searchHash);
-    ResourceTreeNode *getNode(QStringList path, QString &error);
-
-    ReaderData m_readerData;
+    ResourceTreeNode *getNode(QStringList path, Lilrcc::Error &error);
 
     ResourceTreeDir m_root;
 };
