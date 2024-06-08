@@ -7,8 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core)
 find_package(zstd)
 
-qt_add_executable(lilrcc
-    main.cpp
+add_library(lilrcc SHARED
     lilrcc.h lilrcc.cpp
     resourcereader.h resourcereader.cpp
     tree.h tree.cpp
@@ -16,5 +15,14 @@ qt_add_executable(lilrcc
 )
 
 target_link_libraries(lilrcc
+    PRIVATE Qt6::Core
     PRIVATE zstd
+)
+
+qt_add_executable(lilrcc_cli
+    main.cpp
+)
+
+target_link_libraries(lilrcc_cli
+    PRIVATE lilrcc
 )

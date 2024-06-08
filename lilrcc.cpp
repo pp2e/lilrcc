@@ -30,7 +30,7 @@ bool ResourceLibrary::ls(QString path, QString &error) {
     return true;
 }
 
-QByteArray ResourceLibrary::getFile(QString path, QTextStream &out, QString &error) {
+QByteArray ResourceLibrary::getFile(QString path, QString &error) {
     QStringList pathSegments = parsePath(path);
     ResourceTreeNode *node = getNode(pathSegments, error);
     if (!error.isEmpty()) return {};

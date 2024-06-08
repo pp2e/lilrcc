@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     QString inFile = args.first();
     QFile file(inFile);
     if (!file.exists()) {
-        qCritical() << "File does not exist";
+        qCritical() << "File" << inFile << "does not exist";
         return 1;
     }
     if (args.size() < 2) {
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
     if (args[1] == "cat") {
         ASSERT(args.size() >= 3, "Please specify path to file after cat option")
         QString error_string;
-        lillib.getFile(args[2], out, error_string);
+        out << lillib.getFile(args[2], error_string);
         if (!error_string.isEmpty()) {
             qCritical() << error_string << "\n";
             return 1;
