@@ -6,14 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core)
 
-add_library(lilrcc STATIC
-    error.h error.cpp
-    lilrcc.h lilrcc.cpp
-    resourcereader.h resourcereader.cpp
-    tree.h tree.cpp
-    resourcewriter.h resourcewriter.cpp
-)
-
 find_package(zstd)
 if(${zstd_FOUND})
     message("Found zstd")
@@ -34,18 +26,27 @@ else()
 
     FetchContent_MakeAvailable(zstd)
 
-    target_include_directories(
-        lilrcc
-        PRIVATE
-        ${zstd_SOURCE_DIR}/lib
-    )
-
+    set(LILRCC_EXTRA_INCLUDE ${zstd_SOURCE_DIR}/lib)
     set(LILRCC_ZSTD_TARGET libzstd_static)
 endif()
+
+add_library(lilrcc STATIC
+    error.h error.cpp
+    lilrcc.h lilrcc.cpp
+    resourcereader.h resourcereader.cpp
+    tree.h tree.cpp
+    resourcewriter.h resourcewriter.cpp
+)
 
 target_link_libraries(lilrcc
     PRIVATE Qt6::Core
     PRIVATE ${LILRCC_ZSTD_TARGET}
+)
+
+target_include_directories(
+    lilrcc
+    PUBLIC
+    ${LILRCC_EXTRA_INCLUDE}
 )
 
 qt_add_executable(lilrcc_cli
