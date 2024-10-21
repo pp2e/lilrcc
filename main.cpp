@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     } else if (args[1] == "ls") {
         QString path = args.size() < 3 ? "/" : args[2];
         Lilrcc::Error error;
-        lillib.ls(path, error);
+        qDebug() << lillib.ls(path, error).join("\n");
         if (error != Lilrcc::NoError) {
             printError(error);
             return 1;

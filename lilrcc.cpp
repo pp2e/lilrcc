@@ -14,19 +14,20 @@ void ResourceLibrary::printTree(QTextStream &out) {
     printDirTree(&m_root, out);
 }
 
-bool ResourceLibrary::ls(QString path, Lilrcc::Error &error) {
+QList<QString> ResourceLibrary::ls(QString path, Lilrcc::Error &error) {
     QStringList pathSegments = parsePath(path);
     ResourceTreeNode *node = getNode(pathSegments, error);
-    if (error != Lilrcc::NoError) return false;
+    if (error != Lilrcc::NoError) return {};
     if (!node->isDir()) {
         error = Lilrcc::GotFileInsteadOfDir;
-        return false;
+        return {};
     }
+    QList<QString> entries;
     ResourceTreeDir *dir = static_cast<ResourceTreeDir*>(node);
     for (ResourceTreeNode* node : dir->children()) {
-        qDebug() << node->name() + (node->isDir() ? "/" : "");
+        entries << node->name() + (node->isDir() ? "/" : "");
     }
-    return true;
+    return entries;
 }
 
 QByteArray ResourceLibrary::getFile(QString path, Lilrcc::Error &error) {

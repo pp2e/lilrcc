@@ -13,7 +13,7 @@ public:
     ResourceLibrary(ResourceReader *reader);
 
     void printTree(QTextStream &out);
-    bool ls(QString path, Lilrcc::Error &error);
+    QList<QString> ls(QString path, Lilrcc::Error &error);
     QByteArray getFile(QString path, Lilrcc::Error &error);
     bool rmFile(QString path, Lilrcc::Error &error);
     bool mvFile(QString source, QString dest, Lilrcc::Error &error);

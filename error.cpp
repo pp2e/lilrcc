@@ -2,22 +2,25 @@
 
 void Lilrcc::printError(Error error) {
     switch (error) {
-    NoError:
+    case NoError:
+        qDebug() << "Lilrcc: No error";
         break;
-    InputFileIsNotRcc:
+    case InputFileIsNotRcc:
         qCritical() << "Lilrcc: File tried open is not rcc";
         break;
-    CannotUncompress:
+    case CannotUncompress:
         qCritical() << "Lilrcc: Cannot read compressed data";
         break;
-    GotFileInsteadOfDir:
+    case GotFileInsteadOfDir:
         qCritical() << "Lilrcc: Got file instead of the dir";
         break;
-    EntryNotFound:
+    case EntryNotFound:
         qCritical() << "Lilrcc: Entry not found";
         break;
-    GotDirInsteadOfFil:
+    case GotDirInsteadOfFile:
         qCritical() << "Lilrcc: Got directory instead of the file";
         break;
+    default:
+        qDebug() << "Could not find error" << error;
     }
 }
